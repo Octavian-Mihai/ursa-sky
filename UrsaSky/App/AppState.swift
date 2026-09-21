@@ -1,0 +1,84 @@
+import Foundation
+import Combine
+import SwiftUI
+
+@MainActor
+final class AppState: ObservableObject {
+    let catalog = CatalogStore.shared
+    let location = LocationService()
+    let clock = SkyClock()
+    let attitude = AttitudeFusion()
+    let meteors = MeteorCatalog.shared
+
+    @Published var magLimit: Double = 6.0
+    @Published var nightVision = false
+    @Published var redFilter = false
+    @Published var redIntensity: Double = 0.45
+    @Published var onlineEnabled = false
+    @Published var onboardingComplete: Bool
+    @Published var selectedStar: Star?
+    @Published var selectedConstellation: Constellation?
+    @Published var sceneActive = true
+    @Published var iss: ISSPredictor
+    @Published var tleEpochLabel: String = "bundled"
+
+    var arPaused: Bool { !sceneActive }
+
+    var theme: NightPalette { nightVision ? NightMode.night : NightMode.dark }
+
+    var hasLocation: Bool { location.current != nil }
+
+    var onlineService: any OnlineEnhancementService {
+        OnlineToggle.service(enabled: onlineEnabled)
+    }
+
+    init() {
+        onboardingComplete = UserDefaults.standard.bool(forKey: "ursa.onboarded")
+        magLimit = UserDefaults.standard.object(forKey: "ursa.mag") as? Double ?? 6.0
+        nightVision = UserDefaults.standard.bool(forKey: "ursa.night")
+        redFilter = UserDefaults.standard.bool(forKey: "ursa.red")
+        redIntensity = UserDefaults.standard.object(forKey: "ursa.redI") as? Double ?? 0.45
+        onlineEnabled = UserDefaults.standard.bool(forKey: "ursa.online")
+        let tle = Self.loadBundledTLE()
+        iss = ISSPredictor(tle: tle ?? TLEParser.parse(Self.fallbackTLE).first!)
+        if let tle { tleEpochLabel = tle.epoch.formatted(date: .abbreviated, time: .shortened) }
+    }
+
+    func persist() {
+        UserDefaults.standard.set(onboardingComplete, forKey: "ursa.onboarded")
+        UserDefaults.standard.set(magLimit, forKey: "ursa.mag")
+        UserDefaults.standard.set(nightVision, forKey: "ursa.night")
+        UserDefaults.standard.set(redFilter, forKey: "ursa.red")
+        UserDefaults.standard.set(redIntensity, forKey: "ursa.redI")
+        UserDefaults.standard.set(onlineEnabled, forKey: "ursa.online")
+    }
+
+    func finishOnboarding() {
+        onboardingComplete = true
+        persist()
+    }
+
+    func refreshTLEIfOnline() async {
+        guard onlineEnabled else { return }
+        do {
+            if let tle = try await onlineService.refreshISS_TLE() {
+                iss.update(tle: tle)
+                tleEpochLabel = tle.epoch.formatted(date: .abbreviated, time: .shortened) + " (online)"
+            }
+        } catch {
+            // Keep bundled / last TLE.
+        }
+    }
+
+    private static func loadBundledTLE() -> TLE? {
+        guard let url = Bundle.main.url(forResource: "iss", withExtension: "tle"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        return TLEParser.parse(text).first
+    }
+
+    static let fallbackTLE = """
+    ISS (ZARYA)
+    1 25544U 98067A   26263.14255447  .00007470  00000+0  14267-3 0  9991
+    2 25544  51.6307 190.1401 0004820 160.6694 199.4478 15.49188396586472
+    """
+}
