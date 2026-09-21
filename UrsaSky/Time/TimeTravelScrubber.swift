@@ -25,7 +25,7 @@ struct TimeTravelScrubber: View {
             Slider(
                 value: Binding(
                     get: { app.clock.offset },
-                    set: { app.clock.offset = $0; app.clock.isLive = $0 == 0 }
+                    set: { app.clock.offset = $0; app.clock.isLive = abs($0) < 1 }
                 ),
                 in: range,
                 step: step
@@ -35,6 +35,12 @@ struct TimeTravelScrubber: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.ultraThinMaterial)
+        .onChange(of: app.clock.scrubberUnit) { _, _ in
+            let clamped = min(max(app.clock.offset, range.lowerBound), range.upperBound)
+            if clamped != app.clock.offset {
+                app.clock.offset = clamped
+            }
+        }
     }
 
     private var range: ClosedRange<Double> {

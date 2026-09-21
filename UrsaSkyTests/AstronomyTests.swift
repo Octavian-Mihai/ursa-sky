@@ -77,4 +77,90 @@ final class AstronomyTests: XCTestCase {
         XCTAssertGreaterThan(future.ra, polaris.ra)
         XCTAssertGreaterThan(future.dec, 89.2)
     }
+
+    func testNutationAtPoleIsFinite() {
+        let pole = Equatorial(ra: 0, dec: 89.95)
+        let n = Nutation.at(jd: 2451545.0)
+        let eq = n.apply(to: pole)
+        XCTAssertTrue(eq.ra.isFinite)
+        XCTAssertTrue(eq.dec.isFinite)
+        XCTAssertGreaterThan(eq.dec, 89)
+        XCTAssertLessThan(eq.dec, 90.01)
+    }
+
+    func testSceneDirectionAxes() {
+        let north = HorizontalConvert.sceneDirection(altAz: Horizontal(alt: 0, az: 0))
+        XCTAssertEqual(north.x, 0, accuracy: 1e-5)
+        XCTAssertEqual(north.y, 0, accuracy: 1e-5)
+        XCTAssertEqual(north.z, -1, accuracy: 1e-5) // north = −Z
+        let east = HorizontalConvert.sceneDirection(altAz: Horizontal(alt: 0, az: 90))
+        XCTAssertEqual(east.x, 1, accuracy: 1e-5)
+        let zenith = HorizontalConvert.sceneDirection(altAz: Horizontal(alt: 90, az: 0))
+        XCTAssertEqual(zenith.y, 1, accuracy: 1e-5)
+    }
+
+    func testCanopusNeverRisesAt40N() {
+        // Canopus, Dec ≈ −52.7°. From 40°N it stays below the horizon.
+        let canopus = Equatorial(ra: 95.98796, dec: -52.69566)
+        let jd = JulianDate.julianDay(year: 2020, month: 1, day: 1.0)
+        var maxAlt = -90.0
+        for hour in stride(from: 0.0, through: 23.0, by: 1) {
+            let h = HorizontalConvert.altAz(
+                equatorialJ2000: canopus,
+                jd: jd + hour / 24.0,
+                latitude: 40.0,
+                longitudeEast: -74.0,
+                applyNutation: false,
+                applyRefraction: false
+            )
+            maxAlt = max(maxAlt, h.alt)
+        }
+        XCTAssertLessThan(maxAlt, 0)
+    }
+
+    func testPolarisCircumpolarAt40N() {
+        let polaris = Equatorial(ra: 37.9546, dec: 89.2641)
+        let h = HorizontalConvert.altAz(
+            equatorialJ2000: polaris,
+            jd: 2451545.0,
+            latitude: 40.0,
+            longitudeEast: -74.0,
+            applyNutation: false,
+            applyRefraction: false
+        )
+        XCTAssertGreaterThan(h.alt, 20)
+    }
+
+    func testTLEParseISS() throws {
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "iss", withExtension: "tle"))
+        let text = try String(contentsOf: url, encoding: .utf8)
+        let tles = TLEParser.parse(text)
+        XCTAssertEqual(tles.count, 1)
+        let tle = try XCTUnwrap(tles.first)
+        XCTAssertEqual(tle.norad, 25544)
+        XCTAssertEqual(tle.inclinationDeg, 51.6307, accuracy: 1e-3)
+        XCTAssertGreaterThan(tle.meanMotionRevPerDay, 15)
+        XCTAssertEqual(tle.epochYear, 2026)
+    }
+
+    func testSGP4ISSNearEarthRadius() throws {
+        let text = """
+        ISS (ZARYA)
+        1 25544U 98067A   26263.14255447  .00007470  00000+0  14267-3 0  9991
+        2 25544  51.6307 190.1401 0004820 160.6694 199.4478 15.49188396586472
+        """
+        let tle = try XCTUnwrap(TLEParser.parse(text).first)
+        let sgp = try XCTUnwrap(SGP4(tle: tle))
+        let state = sgp.propagate(minutesSinceEpoch: 0)
+        let r = (state.positionKm.x * state.positionKm.x
+                 + state.positionKm.y * state.positionKm.y
+                 + state.positionKm.z * state.positionKm.z).squareRoot()
+        // ISS ~420 km up → geocentric radius ~6800 km.
+        XCTAssertEqual(r, 6800, accuracy: 250)
+        XCTAssertNil(SGP4(tle: TLE(
+            name: "GEO", line1: "", line2: "", norad: 0, epochYear: 2026, epochDay: 1,
+            bstar: 0, inclinationDeg: 0, raanDeg: 0, eccentricity: 0,
+            argPerigeeDeg: 0, meanAnomalyDeg: 0, meanMotionRevPerDay: 1.0
+        )))
+    }
 }

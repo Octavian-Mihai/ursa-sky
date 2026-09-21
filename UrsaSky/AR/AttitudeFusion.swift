@@ -6,15 +6,25 @@ import Combine
 
 final class AttitudeFusion: ObservableObject {
     let motion = CMMotionManager()
-    @Published var magneticAccuracy: CMMagneticFieldCalibrationAccuracy = .uncalibrated
-    @Published var gyroMagnitude: Double = 1
+    /// Default is “unknown” so the figure-8 banner is not shown before the first sample.
+    @Published var magneticAccuracy: CMMagneticFieldCalibrationAccuracy = .high
     @Published var usingTrueNorth = true
+    @Published private(set) var hasMotionSample = false
+    /// Gyro rate; not @Published — writing it at 60 Hz was spamming SwiftUI.
+    private(set) var gyroMagnitude: Double = 1
 
     private var lastQuat: simd_quatd?
     private let queue = OperationQueue()
+    private var started = false
+
+    var compassNeedsCalibration: Bool {
+        hasMotionSample && (magneticAccuracy == .low || magneticAccuracy == .uncalibrated)
+    }
 
     func start() {
         guard motion.isDeviceMotionAvailable else { return }
+        if started, motion.isDeviceMotionActive { return }
+        started = true
         motion.deviceMotionUpdateInterval = 1.0 / 60.0
         let frames = CMMotionManager.availableAttitudeReferenceFrames()
         let ref: CMAttitudeReferenceFrame
@@ -33,14 +43,20 @@ final class AttitudeFusion: ObservableObject {
             let gz = data.rotationRate.z
             let mag = sqrt(gx * gx + gy * gy + gz * gz)
             DispatchQueue.main.async {
-                self.magneticAccuracy = acc
                 self.gyroMagnitude = mag
+                if !self.hasMotionSample {
+                    self.hasMotionSample = true
+                }
+                if acc != self.magneticAccuracy {
+                    self.magneticAccuracy = acc
+                }
             }
         }
     }
 
     func stop() {
         motion.stopDeviceMotionUpdates()
+        started = false
     }
 
     /// Camera orientation in SceneKit for a Y-up, −Z-north world built from alt/az.

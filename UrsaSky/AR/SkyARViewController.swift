@@ -1,6 +1,7 @@
 import SwiftUI
 import SceneKit
 import ARKit
+import AVFoundation
 import UIKit
 
 struct SkyARRepresentable: UIViewControllerRepresentable {
@@ -21,29 +22,55 @@ struct SkyARRepresentable: UIViewControllerRepresentable {
 
 final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureRecognizerDelegate {
     var app: AppState?
-    private var sceneView: ARSCNView!
+    private var sceneView: SCNView!
+    private var arView: ARSCNView?
+    private var usingAR = false
+    private var fallbackCamera: SCNNode?
     private var skyRoot = SCNNode()
     private var overlayHost: UIView!
     private var lastRebuild: Date = .distantPast
     private var lastMagLimit: Double = -1
-    private var lastJDBucket: Int = 0
+    private var lastJD: Double = 0
+    private var lastLat: Double = 999
+    private var lastLon: Double = 999
     private var stillSeconds: TimeInterval = 0
     private var lastStillCheck = Date()
     private var pausedForStill = false
+    private var pausedForBackground = false
+    private var uiTimer: Timer?
+    private var labelStars: [Star] = []
     var starHRIndex: [Int] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-        let ar = ARSCNView(frame: view.bounds)
-        ar.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        ar.delegate = self
-        ar.autoenablesDefaultLighting = false
-        ar.rendersContinuously = true
-        ar.scene = SCNScene()
-        ar.scene.rootNode.addChildNode(skyRoot)
-        sceneView = ar
-        view.addSubview(ar)
+
+        let scene = SCNScene()
+        scene.rootNode.addChildNode(skyRoot)
+
+        if Self.canRunAR {
+            let ar = ARSCNView(frame: view.bounds)
+            ar.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            ar.delegate = self
+            ar.autoenablesDefaultLighting = false
+            ar.rendersContinuously = true
+            ar.scene = scene
+            sceneView = ar
+            arView = ar
+            view.addSubview(ar)
+        } else {
+            let scn = SCNView(frame: view.bounds)
+            scn.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            scn.delegate = self
+            scn.autoenablesDefaultLighting = false
+            scn.rendersContinuously = true
+            scn.scene = scene
+            scn.backgroundColor = .black
+            scn.allowsCameraControl = true
+            sceneView = scn
+            view.addSubview(scn)
+            installFallbackCamera()
+        }
 
         overlayHost = UIView(frame: view.bounds)
         overlayHost.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -52,33 +79,82 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         tap.delegate = self
-        ar.addGestureRecognizer(tap)
+        sceneView.addGestureRecognizer(tap)
+    }
+
+    /// ARKit is unavailable in the simulator and when the user has denied the camera.
+    private static var canRunAR: Bool {
+        guard AROrientationTrackingConfiguration.isSupported else { return false }
+        return AVCaptureDevice.authorizationStatus(for: .video) != .denied
+    }
+
+    private func installFallbackCamera() {
+        let cam = SCNCamera()
+        cam.fieldOfView = 65
+        cam.zNear = 0.1
+        cam.zFar = 40
+        let node = SCNNode()
+        node.camera = cam
+        node.position = SCNVector3(0, 0, 0)
+        // Look toward the zenith (+Y) so a static simulator view shows the overhead sky.
+        node.eulerAngles = SCNVector3(-Float.pi / 2, 0, 0)
+        sceneView.scene?.rootNode.addChildNode(node)
+        sceneView.pointOfView = node
+        fallbackCamera = node
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         startAR()
         app?.attitude.start()
+        rebuildIfNeeded()
+        uiTimer?.invalidate()
+        uiTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+            self?.updateLabels()
+            self?.checkStillPause()
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        sceneView.session.pause()
+        uiTimer?.invalidate()
+        uiTimer = nil
+        arView?.session.pause()
         app?.attitude.stop()
     }
 
     func startAR() {
-        guard AROrientationTrackingConfiguration.isSupported else { return }
-        let cfg = AROrientationTrackingConfiguration()
-        sceneView.session.run(cfg, options: [.resetTracking])
         pausedForStill = false
+        sceneView.rendersContinuously = true
+        guard let ar = arView, Self.canRunAR else { return }
+        let cfg = AROrientationTrackingConfiguration()
+        // Y up, Z south, X east — matches HorizontalConvert.sceneDirection.
+        cfg.worldAlignment = .gravityAndHeading
+        ar.session.run(cfg, options: [.resetTracking])
+        usingAR = true
+    }
+
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        usingAR = false
+        arView?.session.pause()
+        if fallbackCamera == nil {
+            installFallbackCamera()
+        }
     }
 
     func applyPauseState() {
         guard let app else { return }
         if app.arPaused {
-            sceneView.session.pause()
+            arView?.session.pause()
             sceneView.rendersContinuously = false
+            pausedForBackground = true
+            return
+        }
+        if pausedForBackground {
+            pausedForBackground = false
+            pausedForStill = false
+            stillSeconds = 0
+            startAR()
         } else if pausedForStill == false {
             sceneView.rendersContinuously = true
         }
@@ -87,12 +163,17 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
     func rebuildIfNeeded() {
         guard let app, let loc = app.location.current else { return }
         let jd = app.clock.julianDay()
-        let bucket = Int(jd * 48) // ~30 min
-        if abs(app.magLimit - lastMagLimit) < 0.05, bucket == lastJDBucket, Date().timeIntervalSince(lastRebuild) < 20 {
+        let locChanged = abs(loc.latitude - lastLat) > 0.0005 || abs(loc.longitude - lastLon) > 0.0005
+        let magChanged = abs(app.magLimit - lastMagLimit) > 0.05
+        // ~2 minutes of sky motion, so the hour scrubber actually moves the sphere.
+        let timeChanged = abs(jd - lastJD) > (2.0 / 1440.0)
+        if !locChanged, !magChanged, !timeChanged, Date().timeIntervalSince(lastRebuild) < 25 {
             return
         }
         lastMagLimit = app.magLimit
-        lastJDBucket = bucket
+        lastJD = jd
+        lastLat = loc.latitude
+        lastLon = loc.longitude
         lastRebuild = Date()
         rebuildSky(jd: jd, loc: loc)
     }
@@ -100,7 +181,8 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
     private func rebuildSky(jd: Double, loc: ObserverLocation) {
         guard let app else { return }
         skyRoot.childNodes.forEach { $0.removeFromParentNode() }
-        let stars = app.catalog.stars(brighterThan: max(app.magLimit, 6.5))
+        // Pull a bit fainter than the draw limit so stick-figure partners still exist.
+        let stars = app.catalog.stars(brighterThan: max(app.magLimit, 7.0))
         var byHR: [Int: Star] = [:]
         for s in stars { byHR[s.hr] = s }
         let (starNode, hrs) = SkySphereBuilder.starNode(
@@ -108,6 +190,7 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             latitude: loc.latitude, longitude: loc.longitude
         )
         starHRIndex = hrs
+        labelStars = stars.filter { $0.commonName != nil && $0.mag <= min(2.4, app.magLimit) }
         skyRoot.addChildNode(starNode)
         let lines = app.catalog.lines()
         skyRoot.addChildNode(SkySphereBuilder.lineNode(lines: lines, starsByHR: byHR, jd: jd, latitude: loc.latitude, longitude: loc.longitude))
@@ -124,15 +207,12 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
     }
 
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        if let q = app?.attitude.cameraOrientationSlerped() {
-            sceneView.pointOfView?.orientation = q
-        }
-        updateLabels()
-        checkStillPause()
+        // Labels and still-pause run on a main-queue timer so UIKit/AppState
+        // are never touched from SceneKit's render thread.
     }
 
     private func checkStillPause() {
-        guard let app else { return }
+        guard usingAR, let app else { return }
         let now = Date()
         let dt = now.timeIntervalSince(lastStillCheck)
         lastStillCheck = now
@@ -145,18 +225,17 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
                 startAR()
             }
         }
-        if stillSeconds > 8, !pausedForStill {
+        if stillSeconds > 8, !pausedForStill, !pausedForBackground {
             pausedForStill = true
-            sceneView.session.pause()
+            arView?.session.pause()
         }
     }
 
     private func updateLabels() {
         overlayHost.subviews.forEach { $0.removeFromSuperview() }
-        guard let app, let loc = app.location.current, let pov = sceneView.pointOfView else { return }
+        guard let app, let loc = app.location.current, sceneView.pointOfView != nil else { return }
         let jd = app.clock.julianDay()
-        let named = app.catalog.stars(brighterThan: min(2.4, app.magLimit)).filter { $0.commonName != nil }
-        for star in named.prefix(40) {
+        for star in labelStars.prefix(40) {
             let h = HorizontalConvert.altAz(equatorialJ2000: star.equatorial, jd: jd, latitude: loc.latitude, longitudeEast: loc.longitude)
             guard h.alt > 8 else { continue }
             let d = HorizontalConvert.sceneDirection(altAz: h) * SkySphereBuilder.radius
@@ -177,7 +256,6 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             lab.layer.shadowOpacity = 1
             overlayHost.addSubview(lab)
         }
-        _ = pov
     }
 
     @objc private func handleTap(_ gr: UITapGestureRecognizer) {

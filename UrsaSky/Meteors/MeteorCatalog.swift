@@ -71,12 +71,24 @@ final class MeteorCatalog {
                 start: d["start"] as? String ?? "",
                 peak: d["peak"] as? String ?? "",
                 end: d["end"] as? String ?? "",
-                zhr: d["zhr"] as? Int ?? 0,
-                raJ2000: d["ra_j2000"] as? Double ?? 0,
-                decJ2000: d["dec_j2000"] as? Double ?? 0,
-                speedKms: d["speed_kms"] as? Double ?? 0,
+                zhr: intish(d["zhr"]),
+                raJ2000: doublish(d["ra_j2000"]),
+                decJ2000: doublish(d["dec_j2000"]),
+                speedKms: doublish(d["speed_kms"]),
                 notes: d["notes"] as? String ?? ""
             )
         }
     }
+}
+
+private func intish(_ v: Any?) -> Int {
+    if let i = v as? Int { return i }
+    if let d = v as? Double { return Int(d) }
+    return 0
+}
+
+private func doublish(_ v: Any?) -> Double {
+    if let d = v as? Double { return d }
+    if let i = v as? Int { return Double(i) }
+    return 0
 }

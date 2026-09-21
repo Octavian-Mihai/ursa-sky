@@ -20,12 +20,17 @@ enum SkySphereBuilder {
                 applyNutation: true,
                 applyRefraction: star.mag < 2
             )
+            // Keep a sliver below the mathematical horizon for refraction; hide the rest.
+            guard h.alt > -0.6 else { continue }
             let d = HorizontalConvert.sceneDirection(altAz: h) * radius
             positions.append(SCNVector3(d.x, d.y, d.z))
             colors.append(spectralColor(star.spect, mag: star.mag))
             sizes.append(pointSize(mag: star.mag))
             hrIndex.append(star.hr)
         }
+        let node = SCNNode()
+        node.name = "stars"
+        guard !positions.isEmpty else { return (node, hrIndex) }
         let src = SCNGeometrySource(vertices: positions)
         let colorData = colors.withUnsafeBufferPointer { Data(buffer: $0) }
         let colorSrc = SCNGeometrySource(
@@ -49,8 +54,7 @@ enum SkySphereBuilder {
         mat.lightingModel = .constant
         mat.writesToDepthBuffer = false
         geom.materials = [mat]
-        let node = SCNNode(geometry: geom)
-        node.name = "stars"
+        node.geometry = geom
         _ = sizes
         return (node, hrIndex)
     }
@@ -62,6 +66,8 @@ enum SkySphereBuilder {
             guard let a = starsByHR[line.starA], let b = starsByHR[line.starB] else { continue }
             let ha = HorizontalConvert.altAz(equatorialJ2000: a.equatorial, jd: jd, latitude: latitude, longitudeEast: longitude, applyNutation: true, applyRefraction: false)
             let hb = HorizontalConvert.altAz(equatorialJ2000: b.equatorial, jd: jd, latitude: latitude, longitudeEast: longitude, applyNutation: true, applyRefraction: false)
+            // Drop segments that are entirely below the horizon.
+            guard ha.alt > -0.6 || hb.alt > -0.6 else { continue }
             let da = HorizontalConvert.sceneDirection(altAz: ha) * radius
             let db = HorizontalConvert.sceneDirection(altAz: hb) * radius
             let i = UInt32(positions.count)
@@ -70,6 +76,9 @@ enum SkySphereBuilder {
             indices.append(i)
             indices.append(i + 1)
         }
+        let node = SCNNode()
+        node.name = "lines"
+        guard positions.count >= 2 else { return node }
         let src = SCNGeometrySource(vertices: positions)
         let idxData = indices.withUnsafeBufferPointer { Data(buffer: $0) }
         let element = SCNGeometryElement(data: idxData, primitiveType: .line, primitiveCount: indices.count / 2, bytesPerIndex: 4)
@@ -79,8 +88,7 @@ enum SkySphereBuilder {
         mat.lightingModel = .constant
         mat.writesToDepthBuffer = false
         geom.materials = [mat]
-        let node = SCNNode(geometry: geom)
-        node.name = "lines"
+        node.geometry = geom
         return node
     }
 

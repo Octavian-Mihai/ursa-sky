@@ -30,9 +30,18 @@ struct Nutation {
         let deps = Angle.deg(dEps)
         let cosEps = cos(eps)
         let sinEps = sin(eps)
-        let dRA = (cosEps + sinEps * sin(ra) * tan(dec)) * dpsi - cos(ra) * tan(dec) * deps
+        let cosDec = cos(dec)
+        // tan(δ) blows up at the poles (Polaris); clamp the correction.
+        let tanDec: Double
+        if abs(cosDec) < 1e-6 {
+            tanDec = cosDec >= 0 ? 1e6 : -1e6
+        } else {
+            tanDec = min(1e6, max(-1e6, sin(dec) / cosDec))
+        }
+        let dRA = (cosEps + sinEps * sin(ra) * tanDec) * dpsi - cos(ra) * tanDec * deps
         let dDec = sinEps * cos(ra) * dpsi + sin(ra) * deps
+        let newDec = min(90, max(-90, mean.dec + Angle.rad(dDec)))
         return Equatorial(ra: Angle.wrap360(mean.ra + Angle.rad(dRA)),
-                          dec: mean.dec + Angle.rad(dDec))
+                          dec: newDec)
     }
 }

@@ -22,6 +22,8 @@ final class AppState: ObservableObject {
     @Published var iss: ISSPredictor
     @Published var tleEpochLabel: String = "bundled"
 
+    private var cancellables = Set<AnyCancellable>()
+
     var arPaused: Bool { !sceneActive }
 
     var theme: NightPalette { nightVision ? NightMode.night : NightMode.dark }
@@ -39,9 +41,24 @@ final class AppState: ObservableObject {
         redFilter = UserDefaults.standard.bool(forKey: "ursa.red")
         redIntensity = UserDefaults.standard.object(forKey: "ursa.redI") as? Double ?? 0.45
         onlineEnabled = UserDefaults.standard.bool(forKey: "ursa.online")
-        let tle = Self.loadBundledTLE()
-        iss = ISSPredictor(tle: tle ?? TLEParser.parse(Self.fallbackTLE).first!)
+        let tle = Self.loadBundledTLE() ?? TLEParser.parse(Self.fallbackTLE).first
+        iss = ISSPredictor(tle: tle)
         if let tle { tleEpochLabel = tle.epoch.formatted(date: .abbreviated, time: .shortened) }
+
+        // Nested ObservableObjects do not invalidate SwiftUI otherwise, so location
+        // and time-travel never rebuilt the sky.
+        location.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        clock.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        attitude.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     func persist() {

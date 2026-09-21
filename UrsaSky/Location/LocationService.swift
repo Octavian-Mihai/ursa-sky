@@ -47,7 +47,14 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func start() {
+        let status = manager.authorizationStatus
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else {
+            lastError = "Location permission is off. Enable it in Settings, or pick a city."
+            isUpdating = false
+            return
+        }
         isUpdating = true
+        lastError = nil
         manager.requestLocation()
     }
 
@@ -85,7 +92,10 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
             self.authorization = manager.authorizationStatus
-            if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways {
+            let authorized = manager.authorizationStatus == .authorizedWhenInUse
+                || manager.authorizationStatus == .authorizedAlways
+            // Do not clobber a city/manual pick just because GPS is now allowed.
+            if authorized, self.current == nil || self.current?.source == .gps {
                 self.start()
             }
         }
@@ -122,10 +132,10 @@ enum CityStore {
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let arr = obj["cities"] as? [[String: Any]] else { return [] }
         return arr.compactMap { d in
-            guard let name = d["name"] as? String,
-                  let lat = d["lat"] as? Double,
-                  let lon = d["lon"] as? Double,
-                  let tz = d["tz"] as? String else { return nil }
+            guard let name = d["name"] as? String else { return nil }
+            let lat = (d["lat"] as? Double) ?? (d["lat"] as? NSNumber)?.doubleValue
+            let lon = (d["lon"] as? Double) ?? (d["lon"] as? NSNumber)?.doubleValue
+            guard let lat, let lon, let tz = d["tz"] as? String else { return nil }
             return City(name: name, country: d["country"] as? String ?? "", latitude: lat, longitude: lon, timeZoneId: tz)
         }.sorted { $0.name < $1.name }
     }

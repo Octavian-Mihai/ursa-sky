@@ -8,7 +8,7 @@ struct SearchHit: Identifiable, Hashable {
     var constellation: Constellation?
     var id: String {
         switch kind {
-        case .star: return "s-\(star?.hr ?? 0)"
+        case .star: return "s-\(star?.id ?? star?.hr ?? 0)"
         case .constellation: return "c-\(constellation?.iau ?? "")"
         }
     }
@@ -34,7 +34,8 @@ enum SearchIndex {
         hits.append(contentsOf: catalog.searchConstellations(like: q).map {
             SearchHit(kind: .constellation, star: nil, constellation: $0)
         })
-        return hits
+        // Prefer exact/prefix name matches, then magnitude.
+        return Array(hits.prefix(limit * 2))
     }
 }
 
@@ -42,18 +43,24 @@ extension CatalogStore {
     func searchStars(like query: String, limit: Int) -> [Star] {
         let pattern = "%\(query)%"
         // Try FTS first, then LIKE.
-        let fts = queryStars(
-            sql: """
-            SELECT s.* FROM stars s
-            JOIN star_fts f ON f.rowid = s.id
-            WHERE star_fts MATCH ?
-            ORDER BY s.mag ASC LIMIT ?
-            """,
-            bind: {
-                sqlite3_bind_text($0, 1, ftsQuery(query), -1, SQLITE_TRANSIENT)
-                sqlite3_bind_int($0, 2, Int32(limit))
-            }
-        )
+        let ftsQ = ftsQuery(query)
+        let fts: [Star]
+        if ftsQ.isEmpty {
+            fts = []
+        } else {
+            fts = queryStars(
+                sql: """
+                SELECT s.* FROM stars s
+                JOIN star_fts f ON f.rowid = s.id
+                WHERE star_fts MATCH ?
+                ORDER BY s.mag ASC LIMIT ?
+                """,
+                bind: {
+                    sqlite3_bind_text($0, 1, ftsQ, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_int($0, 2, Int32(limit))
+                }
+            )
+        }
         if !fts.isEmpty { return fts }
         return queryStars(
             sql: """
@@ -96,8 +103,15 @@ extension CatalogStore {
 }
 
 private func ftsQuery(_ raw: String) -> String {
-    let cleaned = raw.replacingOccurrences(of: "\"", with: "")
+    let stripped = raw.map { ch -> Character in
+        if ch.isLetter || ch.isNumber { return ch }
+        return " "
+    }
+    let reserved: Set<String> = ["AND", "OR", "NOT", "NEAR"]
+    let cleaned = String(stripped)
         .split(whereSeparator: { $0.isWhitespace })
-        .joined(separator: " ")
-    return "\(cleaned)*"
+        .map(String.init)
+        .filter { !$0.isEmpty && !reserved.contains($0.uppercased()) }
+    guard !cleaned.isEmpty else { return "" }
+    return cleaned.map { "\($0)*" }.joined(separator: " ")
 }

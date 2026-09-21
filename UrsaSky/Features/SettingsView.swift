@@ -30,6 +30,9 @@ struct SettingsView: View {
                     } else {
                         Text("No location set")
                     }
+                    if let err = app.location.lastError {
+                        Text(err).font(.caption).foregroundStyle(.orange)
+                    }
                     Button("Refresh GPS") {
                         app.location.requestWhenInUse()
                         app.location.start()

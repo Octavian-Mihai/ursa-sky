@@ -45,6 +45,7 @@
 		00SKY000000000000000096 /* SkyClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000095 /* SkyClock.swift */; };
 		00SKY000000000000000098 /* TimeTravelScrubber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000097 /* TimeTravelScrubber.swift */; };
 		00SKY000000000000000100 /* AstronomyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000099 /* AstronomyTests.swift */; };
+		00SKY000000000000000123 /* CatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000122 /* CatalogTests.swift */; };
 		00SKY000000000000000102 /* catalog.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000101 /* catalog.sqlite */; };
 		00SKY000000000000000104 /* cities.json in Resources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000103 /* cities.json */; };
 		00SKY000000000000000106 /* meteors.json in Resources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000105 /* meteors.json */; };
@@ -108,6 +109,7 @@
 		00SKY000000000000000095 /* SkyClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyClock.swift; sourceTree = "<group>"; };
 		00SKY000000000000000097 /* TimeTravelScrubber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTravelScrubber.swift; sourceTree = "<group>"; };
 		00SKY000000000000000099 /* AstronomyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AstronomyTests.swift; sourceTree = "<group>"; };
+		00SKY000000000000000122 /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
 		00SKY000000000000000101 /* catalog.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = catalog.sqlite; sourceTree = "<group>"; };
 		00SKY000000000000000103 /* cities.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = cities.json; sourceTree = "<group>"; };
 		00SKY000000000000000105 /* meteors.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = meteors.json; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 			isa = PBXGroup;
 			children = (
 				00SKY000000000000000099 /* AstronomyTests.swift */,
+				00SKY000000000000000122 /* CatalogTests.swift */,
 			);
 			path = UrsaSkyTests;
 			sourceTree = "<group>";
@@ -477,6 +480,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				00SKY000000000000000100 /* AstronomyTests.swift in Sources */,
+				00SKY000000000000000123 /* CatalogTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

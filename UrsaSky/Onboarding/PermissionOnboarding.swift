@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct PermissionOnboarding: View {
     @EnvironmentObject var app: AppState
@@ -28,8 +29,11 @@ struct PermissionOnboarding: View {
                 Button(page == 2 ? "Continue" : "Allow") {
                     switch page {
                     case 0:
-                        page = 1
+                        AVCaptureDevice.requestAccess(for: .video) { _ in
+                            DispatchQueue.main.async { page = 1 }
+                        }
                     case 1:
+                        app.attitude.start()
                         page = 2
                     default:
                         app.location.requestWhenInUse()

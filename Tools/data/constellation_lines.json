@@ -2250,6 +2250,30 @@
       "seq": 1
     },
     {
+      "iau": "Lac",
+      "a_hr": 8572,
+      "b_hr": 8541,
+      "a_hip": null,
+      "b_hip": null,
+      "seq": 2
+    },
+    {
+      "iau": "Lac",
+      "a_hr": 8541,
+      "b_hr": 8523,
+      "a_hip": null,
+      "b_hip": null,
+      "seq": 3
+    },
+    {
+      "iau": "Lac",
+      "a_hr": 8572,
+      "b_hr": 8579,
+      "a_hip": null,
+      "b_hip": null,
+      "seq": 4
+    },
+    {
       "iau": "Leo",
       "a_hr": 3873,
       "b_hr": 3905,

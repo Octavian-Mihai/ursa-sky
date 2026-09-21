@@ -32,8 +32,14 @@ struct BrowseView: View {
     private var searchList: some View {
         List(hits) { hit in
             Button {
-                app.selectedStar = hit.star
-                app.selectedConstellation = hit.constellation
+                switch hit.kind {
+                case .star:
+                    app.selectedConstellation = nil
+                    app.selectedStar = hit.star
+                case .constellation:
+                    app.selectedStar = nil
+                    app.selectedConstellation = hit.constellation
+                }
             } label: {
                 VStack(alignment: .leading) {
                     Text(hit.title).foregroundStyle(app.theme.primaryText)

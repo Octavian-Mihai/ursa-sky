@@ -97,7 +97,7 @@ BAYER_LINES = {
     "Hya": [("Zet", "Eps"), ("Eps", "Del"), ("Del", "Sig"), ("Sig", "Eta"), ("Eta", "Rho"), ("Rho", "Eps"), ("The", "Iot"), ("Iot", "Ups1"), ("Ups1", "Alp"), ("Alp", "Lam"), ("Lam", "Mu"), ("Mu", "Nu"), ("Nu", "Xi"), ("Xi", "Bet"), ("Bet", "Gam"), ("The", "Zet")],
     "Hyi": [("Alp", "Bet"), ("Bet", "Gam"), ("Gam", "Del"), ("Del", "Alp")],
     "Ind": [("Alp", "Bet"), ("Bet", "Del"), ("Alp", "The")],
-    "Lac": [("Alp", "Bet"), ("Bet", "Gam"), ("Gam", "Zet"), ("Zet", "Eta"), ("Alp", "5")],
+    "Lac": [("Alp", "Bet"), ("Alp", "5"), ("5", "4"), ("4", "2"), ("5", "6")],
     "Leo": [("Eps", "Mu"), ("Mu", "Zet"), ("Zet", "Gam"), ("Gam", "Eta"), ("Eta", "Alp"), ("Alp", "The"), ("The", "Bet"), ("Bet", "Del"), ("Del", "The"), ("Del", "Iot"), ("Eta", "Gam")],
     "LMi": [("Bet", "46"), ("46", "31"), ("31", "21"), ("21", "10")],
     "Lep": [("Alp", "Bet"), ("Bet", "Eps"), ("Eps", "Mu"), ("Alp", "Gam"), ("Gam", "Del"), ("Del", "Bet"), ("Alp", "Zet"), ("Zet", "Eta")],

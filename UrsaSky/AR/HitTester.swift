@@ -33,6 +33,7 @@ enum HitTester {
                 latitude: latitude,
                 longitudeEast: longitude
             )
+            guard h.alt > -0.5 else { continue }
             let d = HorizontalConvert.sceneDirection(altAz: h)
             let v = SIMD3<Double>(Double(d.x), Double(d.y), Double(d.z))
             let ang = Angle.rad(acos(max(-1, min(1, simd_dot(simd_normalize(v), dir)))))

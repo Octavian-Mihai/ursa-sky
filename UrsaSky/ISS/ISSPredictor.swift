@@ -12,12 +12,12 @@ struct ISSPass: Identifiable, Hashable {
 }
 
 final class ISSPredictor {
-    private(set) var tle: TLE
+    private(set) var tle: TLE?
     private var sgp4: SGP4?
 
-    init(tle: TLE) {
+    init(tle: TLE?) {
         self.tle = tle
-        self.sgp4 = SGP4(tle: tle)
+        if let tle { self.sgp4 = SGP4(tle: tle) }
     }
 
     func update(tle: TLE) {
@@ -62,6 +62,9 @@ final class ISSPredictor {
                 maxAlt = -90
             }
             t = t.addingTimeInterval(step)
+        }
+        if let aos = currentAOS {
+            passes.append(ISSPass(aos: aos, los: end, maxAlt: maxAlt, maxAz: maxAz, maxTime: maxTime))
         }
         return passes
     }

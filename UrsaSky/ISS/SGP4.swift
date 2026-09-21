@@ -56,6 +56,9 @@ struct SGP4 {
         epoch = tle.epoch
         let n0 = tle.meanMotionRevPerDay * 2.0 * .pi / 1440.0
         guard ecc0 >= 0, ecc0 < 0.999, n0 > 1e-8 else { return nil }
+        // SDP4 (deep space) is omitted; periods ≥ 225 min are not valid here.
+        let periodMin = 2.0 * .pi / n0
+        guard periodMin < 225 else { return nil }
 
         cosio = cos(xincl)
         sinio = sin(xincl)
@@ -131,7 +134,8 @@ struct SGP4 {
         var templ = t2cof * t2 + t3cof * t3 + t4cof * t4 + t5cof * t4 * t
         tempa = max(tempa, 0.7)
         tempe += bstar * c5 * (sin(xmdf) - sinmo)
-        let mm = xmdf + xmcof * (pow(1 + eta * cos(xmdf), 3) - delmo)
+        // `templ` is the drag secular term in mean longitude (Vallado SGP4).
+        let mm = xmdf + xmcof * (pow(1 + eta * cos(xmdf), 3) - delmo) + templ
         let omega = omgadf + omgcof * t
         let xnode = xnoddf + nodecf * t2
         let a = ao * tempa * tempa
@@ -142,6 +146,7 @@ struct SGP4 {
         for _ in 0..<12 {
             let f = ea - e * sin(ea) - mm
             let fp = 1 - e * cos(ea)
+            if abs(fp) < 1e-12 { break }
             ea -= f / fp
         }
         let r = a * (1 - e * cos(ea))
@@ -165,7 +170,6 @@ struct SGP4 {
         let vy = rdot * uy + rfdot * (-su * snode + cu * cnode * ci)
         let vz = rdot * uz + rfdot * (cu * si)
         let vel = SIMD3(vx, vy, vz) * Self.earthRadiusKm / 60.0
-        _ = templ
         _ = no
         return State(positionKm: pos, velocityKmS: vel)
     }

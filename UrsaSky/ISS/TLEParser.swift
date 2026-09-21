@@ -17,8 +17,9 @@ struct TLE: Equatable {
 
     var epoch: Date {
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = TimeZone(secondsFromGMT: 0)!
-        let start = cal.date(from: DateComponents(year: epochYear, month: 1, day: 1))!
+        cal.timeZone = TimeZone(secondsFromGMT: 0) ?? TimeZone(identifier: "UTC") ?? .current
+        let start = cal.date(from: DateComponents(year: epochYear, month: 1, day: 1))
+            ?? Date(timeIntervalSince1970: 0)
         return start.addingTimeInterval((epochDay - 1.0) * 86400)
     }
 }
@@ -57,18 +58,33 @@ enum TLEParser {
     }
 
     static func decode(name: String, l1: String, l2: String) -> TLE? {
-        guard l1.count >= 69, l2.count >= 69 else { return nil }
-        let norad = Int(l1.dropFirst(2).prefix(5).trimmingCharacters(in: .whitespaces)) ?? 0
-        let year2 = Int(slice(l1, 18, 20)) ?? 0
+        guard l1.hasPrefix("1"), l2.hasPrefix("2") else { return nil }
+        let l1p = l1.count >= 69 ? l1 : l1.padding(toLength: 69, withPad: " ", startingAt: 0)
+        let l2p = l2.count >= 69 ? l2 : l2.padding(toLength: 69, withPad: " ", startingAt: 0)
+        let norad = Int(l1p.dropFirst(2).prefix(5).trimmingCharacters(in: .whitespaces)) ?? 0
+        let year2 = Int(slice(l1p, 18, 20).trimmingCharacters(in: .whitespaces)) ?? 0
         let epochYear = year2 < 57 ? 2000 + year2 : 1900 + year2
-        let epochDay = Double(slice(l1, 20, 32)) ?? 1
-        let bstar = scientific(slice(l1, 53, 61))
-        let inc = Double(slice(l2, 8, 16)) ?? 0
-        let raan = Double(slice(l2, 17, 25)) ?? 0
-        let ecc = Double("0." + slice(l2, 26, 33).trimmingCharacters(in: .whitespaces)) ?? 0
-        let argp = Double(slice(l2, 34, 42)) ?? 0
-        let m = Double(slice(l2, 43, 51)) ?? 0
-        let n = Double(slice(l2, 52, 63)) ?? 0
+        let epochDay = Double(slice(l1p, 20, 32).trimmingCharacters(in: .whitespaces)) ?? 1
+        let bstar = scientific(slice(l1p, 53, 61))
+
+        // Column slices first (standard 69-char TLE), then whitespace fields if a value is missing.
+        // Trimming whole lines can shift columns; field fallback keeps ISS-class TLEs working.
+        let f2 = l2.split(whereSeparator: \.isWhitespace).map(String.init)
+        func field(_ i: Int, columns: ClosedRange<Int>) -> Double {
+            if f2.count > i, let v = Double(f2[i]) { return v }
+            return Double(slice(l2p, columns.lowerBound, columns.upperBound + 1).trimmingCharacters(in: .whitespaces)) ?? 0
+        }
+        let inc = field(2, columns: 8...15)
+        let raan = field(3, columns: 17...24)
+        var ecc = Double("0." + slice(l2p, 26, 33).trimmingCharacters(in: .whitespaces)) ?? 0
+        if ecc == 0, f2.count > 4 {
+            let e = f2[4]
+            ecc = e.contains(".") ? (Double(e) ?? 0) : (Double("0." + e) ?? 0)
+        }
+        let argp = field(5, columns: 34...41)
+        let m = field(6, columns: 43...50)
+        let n = field(7, columns: 52...62)
+        guard n > 0 else { return nil }
         return TLE(name: name, line1: l1, line2: l2, norad: norad, epochYear: epochYear, epochDay: epochDay,
                    bstar: bstar, inclinationDeg: inc, raanDeg: raan, eccentricity: ecc,
                    argPerigeeDeg: argp, meanAnomalyDeg: m, meanMotionRevPerDay: n)

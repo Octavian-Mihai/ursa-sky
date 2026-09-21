@@ -28,6 +28,7 @@ final class CatalogStore {
             db = nil
             return
         }
+        sqlite3_busy_timeout(db, 250)
         isLoaded = true
     }
 
@@ -130,6 +131,10 @@ extension CatalogStore {
     }
 
     func starRow(_ stmt: OpaquePointer?) -> Star {
+        guard let stmt else {
+            return Star(id: 0, hr: 0, hip: nil, bayer: nil, flamsteed: nil, commonName: nil, iau: nil,
+                        raJ2000: 0, decJ2000: 0, mag: 99, spect: nil, distLy: nil, description: "")
+        }
         func optInt(_ i: Int32) -> Int? {
             sqlite3_column_type(stmt, i) == SQLITE_NULL ? nil : Int(sqlite3_column_int(stmt, i))
         }

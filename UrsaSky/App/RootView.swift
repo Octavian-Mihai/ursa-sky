@@ -2,7 +2,6 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var app: AppState
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -22,7 +21,6 @@ struct RootView: View {
                 }
                 .tint(app.theme.accent)
             }
-            RedFilterOverlay(intensity: app.redIntensity, enabled: app.redFilter)
         }
         .sheet(item: $app.selectedStar) { star in
             NavigationStack {
@@ -42,6 +40,7 @@ struct RootView: View {
         }
         .onChange(of: app.nightVision) { _, _ in app.persist() }
         .onChange(of: app.redFilter) { _, _ in app.persist() }
+        .onChange(of: app.redIntensity) { _, _ in app.persist() }
         .onChange(of: app.magLimit) { _, _ in app.persist() }
         .onChange(of: app.onlineEnabled) { _, _ in
             app.persist()
@@ -52,12 +51,15 @@ struct RootView: View {
 
 struct SkyTab: View {
     @EnvironmentObject var app: AppState
+    @State private var dismissedCompassHint = false
 
     var body: some View {
         ZStack(alignment: .top) {
             if app.hasLocation {
                 SkyARRepresentable(app: app)
                     .ignoresSafeArea()
+                // Filter the sky only so tab bar / settings stay readable and tappable.
+                RedFilterOverlay(intensity: app.redIntensity, enabled: app.redFilter)
             } else {
                 LocationRequiredView()
             }
@@ -65,20 +67,36 @@ struct SkyTab: View {
                 HStack {
                     OfflineBadge(online: app.onlineEnabled)
                     Spacer()
-                    if app.attitude.magneticAccuracy == .low || app.attitude.magneticAccuracy == .uncalibrated {
-                        Text("Figure-8 the phone to calibrate compass")
-                            .font(.caption2)
-                            .padding(6)
-                            .background(.black.opacity(0.55))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    if app.attitude.compassNeedsCalibration, !dismissedCompassHint {
+                        Button {
+                            dismissedCompassHint = true
+                        } label: {
+                            Text("Figure-8 the phone to calibrate compass")
+                                .font(.caption2)
+                                .padding(6)
+                                .background(.black.opacity(0.55))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
+                if let err = app.catalog.loadError {
+                    Text(err)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .padding(8)
+                }
                 Spacer()
                 if app.hasLocation {
                     TimeTravelScrubber()
                 }
+            }
+        }
+        .onChange(of: app.attitude.magneticAccuracy) { _, acc in
+            if acc == .high || acc == .medium {
+                dismissedCompassHint = false
             }
         }
     }
@@ -109,6 +127,13 @@ struct LocationRequiredView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(app.theme.secondaryText)
                 .padding(.horizontal)
+            if let err = app.location.lastError {
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
             NavigationStack {
                 List {
                     Button("Use GPS") { app.location.requestWhenInUse(); app.location.start() }
