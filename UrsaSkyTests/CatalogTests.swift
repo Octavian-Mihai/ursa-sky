@@ -11,6 +11,14 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(vega?.raJ2000 ?? 0, 279.23, accuracy: 0.05)
     }
 
+    func testPolarisIsNamedAndIdentifiable() {
+        let polaris = CatalogStore.shared.star(hr: Star.polarisHR)
+        XCTAssertNotNil(polaris)
+        XCTAssertTrue(polaris?.isPolaris == true)
+        XCTAssertEqual(polaris?.commonName, "Polaris")
+        XCTAssertEqual(polaris?.iau, "UMi")
+    }
+
     func testSearchFindsNamedStarAndConstellation() {
         let hits = SearchIndex.search(query: "vega", catalog: CatalogStore.shared)
         XCTAssertTrue(hits.contains { $0.star?.hr == 7001 }, "expected Vega in \(hits.map(\.title))")

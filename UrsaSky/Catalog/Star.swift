@@ -32,6 +32,11 @@ struct Star: Identifiable, Hashable {
     }
 
     var equatorial: Equatorial { Equatorial(ra: raJ2000, dec: decJ2000) }
+
+    /// HR 424 — α UMi, the North Star. Always labeled on the sky overlay.
+    static let polarisHR = 424
+
+    var isPolaris: Bool { hr == Self.polarisHR }
 }
 
 private func greekBayer(_ code: String) -> String {

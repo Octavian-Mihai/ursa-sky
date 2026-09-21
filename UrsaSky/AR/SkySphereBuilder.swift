@@ -1,8 +1,13 @@
 import SceneKit
+import simd
 import UIKit
 
 enum SkySphereBuilder {
     static let radius: Float = 12
+    /// SceneKit `.line` primitives are 1 px hairlines. This cylinder radius
+    /// reads as ~2.5–3× that width from the camera at the origin.
+    static let constellationLineRadius: CGFloat = 0.022
+    static let constellationGlowRadius: CGFloat = 0.048
 
     static func starNode(stars: [Star], magLimit: Double, jd: Double, latitude: Double, longitude: Double) -> (SCNNode, [Int]) {
         let visible = stars.filter { $0.mag <= magLimit }
@@ -60,8 +65,10 @@ enum SkySphereBuilder {
     }
 
     static func lineNode(lines: [ConstellationLine], starsByHR: [Int: Star], jd: Double, latitude: Double, longitude: Double) -> SCNNode {
-        var positions: [SCNVector3] = []
-        var indices: [UInt32] = []
+        let node = SCNNode()
+        node.name = "lines"
+        let stroke = lineMaterial(color: UIColor(white: 0.78, alpha: 0.82), emission: 0.28)
+        let glow = lineMaterial(color: UIColor(white: 0.85, alpha: 0.22), emission: 0.12)
         for line in lines {
             guard let a = starsByHR[line.starA], let b = starsByHR[line.starB] else { continue }
             let ha = HorizontalConvert.altAz(equatorialJ2000: a.equatorial, jd: jd, latitude: latitude, longitudeEast: longitude, applyNutation: true, applyRefraction: false)
@@ -70,25 +77,51 @@ enum SkySphereBuilder {
             guard ha.alt > -0.6 || hb.alt > -0.6 else { continue }
             let da = HorizontalConvert.sceneDirection(altAz: ha) * radius
             let db = HorizontalConvert.sceneDirection(altAz: hb) * radius
-            let i = UInt32(positions.count)
-            positions.append(SCNVector3(da.x, da.y, da.z))
-            positions.append(SCNVector3(db.x, db.y, db.z))
-            indices.append(i)
-            indices.append(i + 1)
+            let from = SCNVector3(da.x, da.y, da.z)
+            let to = SCNVector3(db.x, db.y, db.z)
+            if let core = cylinderSegment(from: from, to: to, radius: constellationLineRadius, material: stroke) {
+                node.addChildNode(core)
+            }
+            if let halo = cylinderSegment(from: from, to: to, radius: constellationGlowRadius, material: glow) {
+                node.addChildNode(halo)
+            }
         }
-        let node = SCNNode()
-        node.name = "lines"
-        guard positions.count >= 2 else { return node }
-        let src = SCNGeometrySource(vertices: positions)
-        let idxData = indices.withUnsafeBufferPointer { Data(buffer: $0) }
-        let element = SCNGeometryElement(data: idxData, primitiveType: .line, primitiveCount: indices.count / 2, bytesPerIndex: 4)
-        let geom = SCNGeometry(sources: [src], elements: [element])
+        return node
+    }
+
+    private static func lineMaterial(color: UIColor, emission: CGFloat) -> SCNMaterial {
         let mat = SCNMaterial()
-        mat.diffuse.contents = UIColor(white: 0.55, alpha: 0.55)
+        mat.diffuse.contents = color
+        mat.emission.contents = UIColor(white: emission, alpha: 1)
         mat.lightingModel = .constant
         mat.writesToDepthBuffer = false
-        geom.materials = [mat]
-        node.geometry = geom
+        mat.isDoubleSided = true
+        mat.blendMode = .alpha
+        return mat
+    }
+
+    private static func cylinderSegment(from: SCNVector3, to: SCNVector3, radius: CGFloat, material: SCNMaterial) -> SCNNode? {
+        let dx = to.x - from.x
+        let dy = to.y - from.y
+        let dz = to.z - from.z
+        let length = CGFloat(sqrt(dx * dx + dy * dy + dz * dz))
+        guard length > 1e-5 else { return nil }
+        let cyl = SCNCylinder(radius: radius, height: length)
+        cyl.radialSegmentCount = 6
+        cyl.heightSegmentCount = 1
+        cyl.materials = [material]
+        let node = SCNNode(geometry: cyl)
+        node.position = SCNVector3((from.x + to.x) * 0.5, (from.y + to.y) * 0.5, (from.z + to.z) * 0.5)
+        let dir = simd_normalize(simd_float3(dx, dy, dz))
+        let yAxis = simd_float3(0, 1, 0)
+        let axis = simd_cross(yAxis, dir)
+        let axisLen = simd_length(axis)
+        if axisLen < 1e-6 {
+            if dir.y < 0 { node.eulerAngles.x = .pi }
+        } else {
+            let angle = acos(max(-1, min(1, simd_dot(yAxis, dir))))
+            node.simdOrientation = simd_quatf(angle: angle, axis: simd_normalize(axis))
+        }
         return node
     }
 

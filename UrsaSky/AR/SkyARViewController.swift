@@ -190,7 +190,13 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             latitude: loc.latitude, longitude: loc.longitude
         )
         starHRIndex = hrs
+        // Bright named stars only, capped later — Polaris is pinned in regardless
+        // of magnitude or the density prefix so the North Star always has a name.
         labelStars = stars.filter { $0.commonName != nil && $0.mag <= min(2.4, app.magLimit) }
+        if let polaris = stars.first(where: { $0.isPolaris }) ?? app.catalog.star(hr: Star.polarisHR) {
+            labelStars.removeAll { $0.isPolaris }
+            labelStars.insert(polaris, at: 0)
+        }
         skyRoot.addChildNode(starNode)
         let lines = app.catalog.lines()
         skyRoot.addChildNode(SkySphereBuilder.lineNode(lines: lines, starsByHR: byHR, jd: jd, latitude: loc.latitude, longitude: loc.longitude))
@@ -237,7 +243,8 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         let jd = app.clock.julianDay()
         for star in labelStars.prefix(40) {
             let h = HorizontalConvert.altAz(equatorialJ2000: star.equatorial, jd: jd, latitude: loc.latitude, longitudeEast: loc.longitude)
-            guard h.alt > 8 else { continue }
+            // Polaris stays labeled even when it sits near the horizon.
+            guard h.alt > (star.isPolaris ? -0.6 : 8) else { continue }
             let d = HorizontalConvert.sceneDirection(altAz: h) * SkySphereBuilder.radius
             let p = SCNVector3(d.x, d.y, d.z)
             let projected = sceneView.projectPoint(p)
@@ -247,7 +254,7 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             if pz < 0 || pz > 1 { continue }
             if px < 20 || py < 40 || px > view.bounds.width - 20 { continue }
             let lab = UILabel(frame: CGRect(x: px - 40, y: py - 18, width: 80, height: 16))
-            lab.text = star.displayName
+            lab.text = star.isPolaris ? "Polaris" : star.displayName
             lab.textColor = UIColor(white: 0.92, alpha: 0.9)
             lab.font = .systemFont(ofSize: 10, weight: .medium)
             lab.textAlignment = .center
