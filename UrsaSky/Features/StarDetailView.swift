@@ -9,20 +9,15 @@ struct StarDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(star.displayName)
                     .font(.largeTitle.weight(.bold))
-                Text(star.catalogLabel)
-                    .foregroundStyle(app.theme.secondaryText)
+                TonightCard(equatorial: star.equatorial)
                 stats
                 Text(star.description)
                 if let iau = star.iau, let con = app.catalog.constellation(iau: iau) {
                     Button {
-                        app.selectedConstellation = con
+                        app.showConstellation(con)
                     } label: {
                         Label(con.name, systemImage: "sparkle")
                     }
-                }
-                if let h = horizontal {
-                    Text(String(format: "Now: alt %.1f°  az %.1f°", h.alt, h.az))
-                        .font(.body.monospacedDigit())
                 }
             }
             .padding()
@@ -35,25 +30,26 @@ struct StarDetailView: View {
     }
 
     private var stats: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            row("Magnitude", String(format: "%.2f", star.mag))
-            row("Spectral type", star.spect ?? "—")
-            row("RA J2000", raString)
-            row("Dec J2000", decString)
-            row("Distance", star.distLy.map { String(format: "%.0f ly", $0) } ?? "—")
-            row("Constellation", star.iau ?? "—")
+        VStack(alignment: .leading, spacing: 12) {
+            ExplainedRow(title: "Magnitude", value: String(format: "%.2f", star.mag), meaning: SkyMeaning.magnitude)
+            ExplainedRow(title: "Spectral type", value: star.spect ?? "—", meaning: SkyMeaning.spectralType)
+            ExplainedRow(title: "RA / Dec", value: "\(raString)  \(decString)", meaning: SkyMeaning.raDec)
+            ExplainedRow(title: "HR / HIP", value: star.catalogLabel, meaning: SkyMeaning.hrHip)
+            if let bayer = star.bayerLabel {
+                ExplainedRow(title: "Bayer", value: bayer, meaning: SkyMeaning.bayer)
+            }
+            if let iau = star.iau {
+                ExplainedRow(title: "IAU", value: iau, meaning: SkyMeaning.iau)
+            }
+            ExplainedRow(
+                title: "Distance",
+                value: star.distLy.map { String(format: "%.0f ly", $0) } ?? "—",
+                meaning: SkyMeaning.ly
+            )
         }
         .padding()
         .background(app.theme.card)
         .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func row(_ k: String, _ v: String) -> some View {
-        HStack {
-            Text(k).foregroundStyle(app.theme.secondaryText)
-            Spacer()
-            Text(v)
-        }
     }
 
     private var raString: String {
@@ -73,15 +69,5 @@ struct StarDetailView: View {
         let mm = Int(m)
         let s = (m - Double(mm)) * 60
         return String(format: "%@%02d° %02d′ %02.0f″", sign, dd, mm, s)
-    }
-
-    private var horizontal: Horizontal? {
-        guard let loc = app.location.current else { return nil }
-        return HorizontalConvert.altAz(
-            equatorialJ2000: star.equatorial,
-            jd: app.clock.julianDay(),
-            latitude: loc.latitude,
-            longitudeEast: loc.longitude
-        )
     }
 }

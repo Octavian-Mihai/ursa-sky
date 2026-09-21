@@ -29,6 +29,8 @@
 		00SKY000000000000000064 /* ConstellationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000063 /* ConstellationDetailView.swift */; };
 		00SKY000000000000000066 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000065 /* SettingsView.swift */; };
 		00SKY000000000000000068 /* StarDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000067 /* StarDetailView.swift */; };
+		00SKY000000000000000125 /* SkyGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000124 /* SkyGuide.swift */; };
+		00SKY000000000000000127 /* ExplainedRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000126 /* ExplainedRow.swift */; };
 		00SKY000000000000000070 /* ISSPredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000069 /* ISSPredictor.swift */; };
 		00SKY000000000000000072 /* OnlineTLEClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000071 /* OnlineTLEClient.swift */; };
 		00SKY000000000000000074 /* SGP4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000073 /* SGP4.swift */; };
@@ -93,6 +95,8 @@
 		00SKY000000000000000063 /* ConstellationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstellationDetailView.swift; sourceTree = "<group>"; };
 		00SKY000000000000000065 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		00SKY000000000000000067 /* StarDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarDetailView.swift; sourceTree = "<group>"; };
+		00SKY000000000000000124 /* SkyGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyGuide.swift; sourceTree = "<group>"; };
+		00SKY000000000000000126 /* ExplainedRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplainedRow.swift; sourceTree = "<group>"; };
 		00SKY000000000000000069 /* ISSPredictor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISSPredictor.swift; sourceTree = "<group>"; };
 		00SKY000000000000000071 /* OnlineTLEClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineTLEClient.swift; sourceTree = "<group>"; };
 		00SKY000000000000000073 /* SGP4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SGP4.swift; sourceTree = "<group>"; };
@@ -259,7 +263,9 @@
 				00SKY000000000000000059 /* BrowseView.swift */,
 				00SKY000000000000000061 /* CalendarView.swift */,
 				00SKY000000000000000063 /* ConstellationDetailView.swift */,
+				00SKY000000000000000126 /* ExplainedRow.swift */,
 				00SKY000000000000000065 /* SettingsView.swift */,
+				00SKY000000000000000124 /* SkyGuide.swift */,
 				00SKY000000000000000067 /* StarDetailView.swift */,
 			);
 			path = Features;
@@ -457,6 +463,8 @@
 				00SKY000000000000000064 /* ConstellationDetailView.swift in Sources */,
 				00SKY000000000000000066 /* SettingsView.swift in Sources */,
 				00SKY000000000000000068 /* StarDetailView.swift in Sources */,
+				00SKY000000000000000125 /* SkyGuide.swift in Sources */,
+				00SKY000000000000000127 /* ExplainedRow.swift in Sources */,
 				00SKY000000000000000070 /* ISSPredictor.swift in Sources */,
 				00SKY000000000000000072 /* OnlineTLEClient.swift in Sources */,
 				00SKY000000000000000074 /* SGP4.swift in Sources */,

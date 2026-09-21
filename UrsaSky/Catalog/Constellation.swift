@@ -13,6 +13,8 @@ struct Constellation: Identifiable, Hashable {
     var decCent: Double
 
     var id: String { iau }
+
+    var equatorial: Equatorial { Equatorial(ra: raCent, dec: decCent) }
 }
 
 struct ConstellationLine: Hashable {

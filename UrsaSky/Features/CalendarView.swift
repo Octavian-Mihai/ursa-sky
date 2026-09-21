@@ -1,29 +1,5 @@
 import SwiftUI
 
-struct CalendarHubView: View {
-    @EnvironmentObject var app: AppState
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("Meteor showers") {
-                    MeteorCalendarView()
-                }
-                Section("ISS passes") {
-                    if let loc = app.location.current {
-                        ISSPassList(latitude: loc.latitude, longitude: loc.longitude)
-                    } else {
-                        Text("Set a location to predict ISS passes.")
-                    }
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(app.theme.background)
-            .navigationTitle("Calendar")
-        }
-    }
-}
-
 struct ISSPassList: View {
     @EnvironmentObject var app: AppState
     var latitude: Double

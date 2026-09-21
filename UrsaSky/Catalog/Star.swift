@@ -31,6 +31,10 @@ struct Star: Identifiable, Hashable {
         return bits.joined(separator: " · ")
     }
 
+    var bayerLabel: String? {
+        bayer.map { greekBayer($0) }
+    }
+
     var equatorial: Equatorial { Equatorial(ra: raJ2000, dec: decJ2000) }
 
     /// HR 424 — α UMi, the North Star. Always labeled on the sky overlay.

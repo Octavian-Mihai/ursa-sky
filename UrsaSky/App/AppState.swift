@@ -2,6 +2,12 @@ import Foundation
 import Combine
 import SwiftUI
 
+enum AppTab: Hashable {
+    case sky
+    case browse
+    case settings
+}
+
 @MainActor
 final class AppState: ObservableObject {
     let catalog = CatalogStore.shared
@@ -18,13 +24,36 @@ final class AppState: ObservableObject {
     @Published var onboardingComplete: Bool
     @Published var selectedStar: Star?
     @Published var selectedConstellation: Constellation?
+    @Published var selectedTab: AppTab = .sky
     @Published var sceneActive = true
     @Published var iss: ISSPredictor
     @Published var tleEpochLabel: String = "bundled"
 
     private var cancellables = Set<AnyCancellable>()
 
-    var arPaused: Bool { !sceneActive }
+    var arPaused: Bool { !sceneActive || infoSheetOpen }
+
+    var infoSheetOpen: Bool { selectedStar != nil || selectedConstellation != nil }
+
+    func showStar(_ star: Star) {
+        selectedConstellation = nil
+        selectedStar = star
+    }
+
+    func showConstellation(_ constellation: Constellation) {
+        selectedStar = nil
+        selectedConstellation = constellation
+    }
+
+    func dismissInfo() {
+        selectedStar = nil
+        selectedConstellation = nil
+    }
+
+    func showOnSky() {
+        dismissInfo()
+        selectedTab = .sky
+    }
 
     var theme: NightPalette { nightVision ? NightMode.night : NightMode.dark }
 

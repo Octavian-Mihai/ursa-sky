@@ -9,31 +9,32 @@ struct RootView: View {
             if !app.onboardingComplete {
                 PermissionOnboarding()
             } else {
-                TabView {
+                TabView(selection: $app.selectedTab) {
                     SkyTab()
                         .tabItem { Label("Sky", systemImage: "sparkles") }
+                        .tag(AppTab.sky)
                     BrowseView()
                         .tabItem { Label("Browse", systemImage: "magnifyingglass") }
-                    CalendarHubView()
-                        .tabItem { Label("Calendar", systemImage: "calendar") }
+                        .tag(AppTab.browse)
                     SettingsView()
                         .tabItem { Label("Settings", systemImage: "gearshape") }
+                        .tag(AppTab.settings)
                 }
                 .tint(app.theme.accent)
             }
         }
-        .sheet(item: $app.selectedStar) { star in
+        .sheet(isPresented: Binding(
+            get: { app.infoSheetOpen },
+            set: { if !$0 { app.dismissInfo() } }
+        )) {
             NavigationStack {
-                StarDetailView(star: star)
-                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { app.selectedStar = nil } } }
-            }
-            .environmentObject(app)
-            .preferredColorScheme(.dark)
-        }
-        .sheet(item: $app.selectedConstellation) { con in
-            NavigationStack {
-                ConstellationDetailView(constellation: con)
-                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { app.selectedConstellation = nil } } }
+                if let star = app.selectedStar {
+                    StarDetailView(star: star)
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { app.dismissInfo() } } }
+                } else if let con = app.selectedConstellation {
+                    ConstellationDetailView(constellation: con)
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { app.dismissInfo() } } }
+                }
             }
             .environmentObject(app)
             .preferredColorScheme(.dark)

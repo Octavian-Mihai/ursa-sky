@@ -10,6 +10,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading) {
                         Text("Magnitude limit  \(app.magLimit, specifier: "%.1f")")
                         Slider(value: $app.magLimit, in: 3...7, step: 0.5)
+                        Text(SkyMeaning.magnitude)
+                            .font(.caption)
+                            .foregroundStyle(app.theme.secondaryText)
                     }
                 }
                 Section("Night vision") {
@@ -39,6 +42,16 @@ struct SettingsView: View {
                     }
                     NavigationLink("City picker") { CityPickerView() }
                     NavigationLink("Manual coordinates") { ManualCoordinatesView() }
+                }
+                Section("ISS passes") {
+                    if let loc = app.location.current {
+                        ISSPassList(latitude: loc.latitude, longitude: loc.longitude)
+                    } else {
+                        Text("Set a location to predict ISS passes.")
+                    }
+                    Text(SkyMeaning.tle)
+                        .font(.caption)
+                        .foregroundStyle(app.theme.secondaryText)
                 }
                 Section("Online") {
                     Toggle("Online enhancements (ISS TLE refresh)", isOn: $app.onlineEnabled)

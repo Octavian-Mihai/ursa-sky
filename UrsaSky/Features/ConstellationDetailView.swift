@@ -9,17 +9,22 @@ struct ConstellationDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(constellation.name)
                     .font(.largeTitle.weight(.bold))
-                Text("\(constellation.iau) · \(constellation.genitive) · \(constellation.season)")
+                Text("\(constellation.genitive) · \(constellation.season)")
                     .foregroundStyle(app.theme.secondaryText)
+                ExplainedRow(title: "IAU", value: constellation.iau, meaning: SkyMeaning.iau)
+                    .padding()
+                    .background(app.theme.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                TonightCard(equatorial: constellation.equatorial)
+                group("How to find it", constellation.tips)
                 Text(constellation.mythology)
                 group("Brightest", constellation.brightest)
-                group("How to find it", constellation.tips)
                 group("Aside", constellation.funFact)
                 Text("Bright members")
                     .font(.headline)
                 ForEach(app.catalog.stars(inConstellation: constellation.iau, limit: 12)) { star in
                     Button {
-                        app.selectedStar = star
+                        app.showStar(star)
                     } label: {
                         HStack {
                             Text(star.displayName)

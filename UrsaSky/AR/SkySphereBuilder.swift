@@ -9,12 +9,13 @@ enum SkySphereBuilder {
     static let constellationLineRadius: CGFloat = 0.022
     static let constellationGlowRadius: CGFloat = 0.048
 
-    static func starNode(stars: [Star], magLimit: Double, jd: Double, latitude: Double, longitude: Double) -> (SCNNode, [Int]) {
+    static func starNode(stars: [Star], magLimit: Double, jd: Double, latitude: Double, longitude: Double) -> (SCNNode, [Int], [SIMD3<Double>]) {
         let visible = stars.filter { $0.mag <= magLimit }
         var positions: [SCNVector3] = []
         var colors: [SCNVector3] = []
         var sizes: [Float] = []
         var hrIndex: [Int] = []
+        var directions: [SIMD3<Double>] = []
         positions.reserveCapacity(visible.count)
         for star in visible {
             let h = HorizontalConvert.altAz(
@@ -27,15 +28,17 @@ enum SkySphereBuilder {
             )
             // Keep a sliver below the mathematical horizon for refraction; hide the rest.
             guard h.alt > -0.6 else { continue }
-            let d = HorizontalConvert.sceneDirection(altAz: h) * radius
+            let unit = HorizontalConvert.sceneDirection(altAz: h)
+            let d = unit * radius
             positions.append(SCNVector3(d.x, d.y, d.z))
             colors.append(spectralColor(star.spect, mag: star.mag))
             sizes.append(pointSize(mag: star.mag))
             hrIndex.append(star.hr)
+            directions.append(SIMD3<Double>(Double(unit.x), Double(unit.y), Double(unit.z)))
         }
         let node = SCNNode()
         node.name = "stars"
-        guard !positions.isEmpty else { return (node, hrIndex) }
+        guard !positions.isEmpty else { return (node, hrIndex, directions) }
         let src = SCNGeometrySource(vertices: positions)
         let colorData = colors.withUnsafeBufferPointer { Data(buffer: $0) }
         let colorSrc = SCNGeometrySource(
@@ -61,7 +64,7 @@ enum SkySphereBuilder {
         geom.materials = [mat]
         node.geometry = geom
         _ = sizes
-        return (node, hrIndex)
+        return (node, hrIndex, directions)
     }
 
     static func lineNode(lines: [ConstellationLine], starsByHR: [Int: Star], jd: Double, latitude: Double, longitude: Double) -> SCNNode {

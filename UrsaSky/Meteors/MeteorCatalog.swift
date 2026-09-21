@@ -35,6 +35,23 @@ struct MeteorShower: Identifiable, Hashable {
         // wraps year (none currently, but keep)
         return date >= s || date <= e
     }
+
+    /// True when the next activity window has not started yet, within six months.
+    func isUpcoming(on date: Date) -> Bool {
+        if isActive(on: date) { return false }
+        let year = Calendar.current.component(.year, from: date)
+        guard let thisStart = monthDay(start, year: year) else { return false }
+        let nextStart: Date
+        if thisStart.addingTimeInterval(-12 * 3600) > date {
+            nextStart = thisStart
+        } else if let later = monthDay(start, year: year + 1) {
+            nextStart = later
+        } else {
+            return false
+        }
+        let delta = nextStart.timeIntervalSince(date)
+        return delta > 0 && delta <= 180 * 24 * 3600
+    }
 }
 
 final class MeteorCatalog {

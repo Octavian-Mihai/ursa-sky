@@ -3,6 +3,7 @@ import SceneKit
 import ARKit
 import AVFoundation
 import UIKit
+import simd
 
 struct SkyARRepresentable: UIViewControllerRepresentable {
     @ObservedObject var app: AppState
@@ -39,7 +40,9 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
     private var pausedForBackground = false
     private var uiTimer: Timer?
     private var labelStars: [Star] = []
+    private var overlayConstellations: [Constellation] = []
     var starHRIndex: [Int] = []
+    private var tapTargets: [(star: Star, direction: SIMD3<Double>)] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -162,12 +165,15 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
 
     func rebuildIfNeeded() {
         guard let app, let loc = app.location.current else { return }
+        // Opening the info sheet republishes AppState. Rebuilding ~1k cylinders
+        // on that path stalled the main thread (gesture-gate timeout) and the
+        // process was SIGKILL'd.
+        if app.infoSheetOpen { return }
         let jd = app.clock.julianDay()
         let locChanged = abs(loc.latitude - lastLat) > 0.0005 || abs(loc.longitude - lastLon) > 0.0005
         let magChanged = abs(app.magLimit - lastMagLimit) > 0.05
-        // ~2 minutes of sky motion, so the hour scrubber actually moves the sphere.
         let timeChanged = abs(jd - lastJD) > (2.0 / 1440.0)
-        if !locChanged, !magChanged, !timeChanged, Date().timeIntervalSince(lastRebuild) < 25 {
+        if !locChanged, !magChanged, !timeChanged {
             return
         }
         lastMagLimit = app.magLimit
@@ -185,11 +191,14 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         let stars = app.catalog.stars(brighterThan: max(app.magLimit, 7.0))
         var byHR: [Int: Star] = [:]
         for s in stars { byHR[s.hr] = s }
-        let (starNode, hrs) = SkySphereBuilder.starNode(
+        let (starNode, hrs, dirs) = SkySphereBuilder.starNode(
             stars: stars, magLimit: app.magLimit, jd: jd,
             latitude: loc.latitude, longitude: loc.longitude
         )
         starHRIndex = hrs
+        tapTargets = zip(hrs, dirs).compactMap { hr, dir in
+            byHR[hr].map { ($0, dir) }
+        }
         // Bright named stars only, capped later — Polaris is pinned in regardless
         // of magnitude or the density prefix so the North Star always has a name.
         labelStars = stars.filter { $0.commonName != nil && $0.mag <= min(2.4, app.magLimit) }
@@ -197,6 +206,7 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             labelStars.removeAll { $0.isPolaris }
             labelStars.insert(polaris, at: 0)
         }
+        overlayConstellations = app.catalog.allConstellations()
         skyRoot.addChildNode(starNode)
         let lines = app.catalog.lines()
         skyRoot.addChildNode(SkySphereBuilder.lineNode(lines: lines, starsByHR: byHR, jd: jd, latitude: loc.latitude, longitude: loc.longitude))
@@ -241,6 +251,11 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         overlayHost.subviews.forEach { $0.removeFromSuperview() }
         guard let app, let loc = app.location.current, sceneView.pointOfView != nil else { return }
         let jd = app.clock.julianDay()
+        let bounds = view.bounds
+        if overlayConstellations.isEmpty {
+            overlayConstellations = app.catalog.allConstellations()
+        }
+        addConstellationNameLabels(jd: jd, loc: loc, bounds: bounds)
         for star in labelStars.prefix(40) {
             let h = HorizontalConvert.altAz(equatorialJ2000: star.equatorial, jd: jd, latitude: loc.latitude, longitudeEast: loc.longitude)
             // Polaris stays labeled even when it sits near the horizon.
@@ -252,7 +267,7 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             let py = CGFloat(projected.y)
             let pz = CGFloat(projected.z)
             if pz < 0 || pz > 1 { continue }
-            if px < 20 || py < 40 || px > view.bounds.width - 20 { continue }
+            if px < 20 || py < 40 || px > bounds.width - 20 { continue }
             let lab = UILabel(frame: CGRect(x: px - 40, y: py - 18, width: 80, height: 16))
             lab.text = star.isPolaris ? "Polaris" : star.displayName
             lab.textColor = UIColor(white: 0.92, alpha: 0.9)
@@ -265,21 +280,61 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         }
     }
 
+    private func addConstellationNameLabels(jd: Double, loc: ObserverLocation, bounds: CGRect) {
+        let cx = bounds.midX
+        let cy = bounds.midY
+        var names: [(text: String, x: CGFloat, y: CGFloat, dist2: CGFloat)] = []
+        for con in overlayConstellations {
+            let h = HorizontalConvert.altAz(
+                equatorialJ2000: con.equatorial,
+                jd: jd,
+                latitude: loc.latitude,
+                longitudeEast: loc.longitude
+            )
+            guard h.alt >= 12 else { continue }
+            let d = HorizontalConvert.sceneDirection(altAz: h) * SkySphereBuilder.radius
+            let projected = sceneView.projectPoint(SCNVector3(d.x, d.y, d.z))
+            let px = CGFloat(projected.x)
+            let py = CGFloat(projected.y)
+            let pz = CGFloat(projected.z)
+            if pz < 0 || pz > 1 { continue }
+            if px < 28 || py < 48 || px > bounds.width - 28 || py > bounds.height - 36 { continue }
+            let dx = px - cx
+            let dy = py - cy
+            names.append((con.name, px, py, dx * dx + dy * dy))
+        }
+        names.sort { $0.dist2 < $1.dist2 }
+        for item in names.prefix(15) {
+            let lab = UILabel()
+            lab.text = item.text
+            lab.textColor = UIColor(white: 0.94, alpha: 0.92)
+            lab.font = .systemFont(ofSize: 13, weight: .semibold)
+            lab.textAlignment = .center
+            lab.layer.shadowColor = UIColor.black.cgColor
+            lab.layer.shadowRadius = 3
+            lab.layer.shadowOpacity = 1
+            lab.sizeToFit()
+            var f = lab.frame
+            f.size.width += 10
+            f.size.height += 2
+            f.origin = CGPoint(x: item.x - f.width / 2, y: item.y - f.height / 2)
+            lab.frame = f
+            overlayHost.addSubview(lab)
+        }
+    }
+
     @objc private func handleTap(_ gr: UITapGestureRecognizer) {
         if pausedForStill {
             pausedForStill = false
             stillSeconds = 0
             startAR()
         }
-        guard let app, let loc = app.location.current else { return }
+        guard let app else { return }
         let pt = gr.location(in: sceneView)
-        let stars = app.catalog.stars(brighterThan: app.magLimit)
-        if let star = HitTester.nearestStar(
-            tap: pt, in: sceneView, stars: stars,
-            jd: app.clock.julianDay(), latitude: loc.latitude, longitude: loc.longitude,
-            magLimit: app.magLimit
+        if let star = HitTester.nearestCached(
+            tap: pt, in: sceneView, targets: tapTargets
         ) {
-            app.selectedStar = star
+            app.showStar(star)
         }
     }
 }

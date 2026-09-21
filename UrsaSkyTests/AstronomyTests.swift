@@ -88,6 +88,17 @@ final class AstronomyTests: XCTestCase {
         XCTAssertLessThan(eq.dec, 90.01)
     }
 
+    func testSkyGuideBeginnerPhrases() {
+        XCTAssertEqual(SkyGuide.phrase(alt: 45, az: 45), "Look northeast, halfway up")
+        XCTAssertEqual(SkyGuide.phrase(alt: -5, az: 10), "Below the horizon from here right now.")
+        XCTAssertEqual(SkyGuide.compassDirection(0), "north")
+        XCTAssertEqual(SkyGuide.compassDirection(90), "east")
+        XCTAssertEqual(SkyGuide.compassDirection(180), "south")
+        XCTAssertEqual(SkyGuide.compassDirection(270), "west")
+        XCTAssertEqual(SkyGuide.heightPhrase(8), "near the horizon")
+        XCTAssertEqual(SkyGuide.heightPhrase(80), "nearly overhead")
+    }
+
     func testSceneDirectionAxes() {
         let north = HorizontalConvert.sceneDirection(altAz: Horizontal(alt: 0, az: 0))
         XCTAssertEqual(north.x, 0, accuracy: 1e-5)
