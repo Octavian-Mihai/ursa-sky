@@ -99,6 +99,57 @@ final class AstronomyTests: XCTestCase {
         XCTAssertEqual(SkyGuide.heightPhrase(80), "nearly overhead")
     }
 
+    func testVisibilityRankingPrefersAltitudeThenName() {
+        struct Item { var name: String; var alt: Double }
+        let items = [
+            Item(name: "Low", alt: 20),
+            Item(name: "Zenith", alt: 85),
+            Item(name: "Below", alt: -10),
+            Item(name: "Third", alt: 30),
+            Item(name: "Half", alt: 45),
+            Item(name: "Aardvark", alt: 45.1),
+        ]
+        let sorted = items.sorted {
+            SkyGuide.isHigherInSky(altA: $0.alt, nameA: $0.name, altB: $1.alt, nameB: $1.name)
+        }
+        XCTAssertEqual(sorted.map(\.name), ["Zenith", "Aardvark", "Half", "Third", "Low", "Below"])
+    }
+
+    func testVisibilitySortPutsPolarisAboveCanopus() {
+        let loc = ObserverLocation(
+            latitude: 40.0,
+            longitude: -74.0,
+            altitudeMeters: 0,
+            timeZoneId: "America/New_York",
+            label: "NY",
+            source: .manual
+        )
+        let jd = JulianDate.julianDay(year: 2020, month: 6, day: 21.0)
+        struct Target { var name: String; var equatorial: Equatorial }
+        let items = [
+            Target(name: "Canopus", equatorial: Equatorial(ra: 95.98796, dec: -52.69566)),
+            Target(name: "Polaris", equatorial: Equatorial(ra: 37.9546, dec: 89.2641)),
+        ]
+        let sorted = SkyGuide.sortedByVisibility(
+            items,
+            equatorial: { $0.equatorial },
+            name: { $0.name },
+            jd: jd,
+            location: loc
+        )
+        XCTAssertEqual(sorted.map(\.name), ["Polaris", "Canopus"])
+        XCTAssertEqual(
+            SkyGuide.sortedByVisibility(
+                items,
+                equatorial: { $0.equatorial },
+                name: { $0.name },
+                jd: jd,
+                location: nil
+            ).map(\.name),
+            ["Canopus", "Polaris"]
+        )
+    }
+
     func testSceneDirectionAxes() {
         let north = HorizontalConvert.sceneDirection(altAz: Horizontal(alt: 0, az: 0))
         XCTAssertEqual(north.x, 0, accuracy: 1e-5)

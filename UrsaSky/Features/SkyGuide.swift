@@ -43,6 +43,30 @@ enum SkyGuide {
     static func formattedAltAz(_ h: Horizontal) -> String {
         String(format: "%.0f° / %.0f°", h.alt, h.az)
     }
+
+    /// Higher altitude first; names break ties so nearby altitudes stay stable.
+    static func isHigherInSky(altA: Double, nameA: String, altB: Double, nameB: String, similarDegrees: Double = 0.25) -> Bool {
+        if abs(altA - altB) > similarDegrees {
+            return altA > altB
+        }
+        return nameA.localizedStandardCompare(nameB) == .orderedAscending
+    }
+
+    static func sortedByVisibility<T>(
+        _ items: [T],
+        equatorial: (T) -> Equatorial,
+        name: (T) -> String,
+        jd: Double,
+        location: ObserverLocation?
+    ) -> [T] {
+        guard let location else { return items }
+        return items
+            .map { item in
+                (item, horizontal(equatorial: equatorial(item), jd: jd, location: location).alt, name(item))
+            }
+            .sorted { isHigherInSky(altA: $0.1, nameA: $0.2, altB: $1.1, nameB: $1.2) }
+            .map(\.0)
+    }
 }
 
 /// Live compass/height card plus a control that jumps to the Sky tab.

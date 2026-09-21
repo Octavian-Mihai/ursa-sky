@@ -89,6 +89,11 @@ struct SkyTab: View {
                         .foregroundStyle(.orange)
                         .padding(8)
                 }
+                if app.aimedSky != nil {
+                    SkyAimBanner()
+                        .padding(.horizontal, 12)
+                        .padding(.top, 4)
+                }
                 Spacer()
                 if app.hasLocation {
                     TimeTravelScrubber()
@@ -100,6 +105,43 @@ struct SkyTab: View {
                 dismissedCompassHint = false
             }
         }
+    }
+}
+
+struct SkyAimBanner: View {
+    @EnvironmentObject var app: AppState
+
+    var body: some View {
+        if let info = aimInfo {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(info.name)
+                        .font(.subheadline.weight(.semibold))
+                    Text(info.phrase)
+                        .font(.caption)
+                }
+                Spacer(minLength: 8)
+                Button("Clear highlight") {
+                    app.clearSkyAim()
+                }
+                .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(Color(red: 1.0, green: 0.84, blue: 0.42))
+            .padding(10)
+            .background(.black.opacity(0.58))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private var aimInfo: (name: String, phrase: String)? {
+        guard let target = app.aimedTarget() else { return nil }
+        let phrase: String
+        if let loc = app.location.current {
+            phrase = SkyGuide.phrase(equatorial: target.equatorial, jd: app.clock.julianDay(), location: loc)
+        } else {
+            phrase = "Set a location to see which way to look."
+        }
+        return (target.name, phrase)
     }
 }
 

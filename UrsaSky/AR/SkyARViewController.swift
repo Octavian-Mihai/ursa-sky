@@ -34,6 +34,7 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
     private var lastJD: Double = 0
     private var lastLat: Double = 999
     private var lastLon: Double = 999
+    private var lastAimedSky: SkyAim?
     private var stillSeconds: TimeInterval = 0
     private var lastStillCheck = Date()
     private var pausedForStill = false
@@ -173,13 +174,15 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         let locChanged = abs(loc.latitude - lastLat) > 0.0005 || abs(loc.longitude - lastLon) > 0.0005
         let magChanged = abs(app.magLimit - lastMagLimit) > 0.05
         let timeChanged = abs(jd - lastJD) > (2.0 / 1440.0)
-        if !locChanged, !magChanged, !timeChanged {
+        let aimChanged = lastAimedSky != app.aimedSky
+        if !locChanged, !magChanged, !timeChanged, !aimChanged {
             return
         }
         lastMagLimit = app.magLimit
         lastJD = jd
         lastLat = loc.latitude
         lastLon = loc.longitude
+        lastAimedSky = app.aimedSky
         lastRebuild = Date()
         rebuildSky(jd: jd, loc: loc)
     }
@@ -209,7 +212,15 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         overlayConstellations = app.catalog.allConstellations()
         skyRoot.addChildNode(starNode)
         let lines = app.catalog.lines()
-        skyRoot.addChildNode(SkySphereBuilder.lineNode(lines: lines, starsByHR: byHR, jd: jd, latitude: loc.latitude, longitude: loc.longitude))
+        skyRoot.addChildNode(SkySphereBuilder.lineNode(
+            lines: lines,
+            starsByHR: byHR,
+            jd: jd,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            highlightIAU: app.aimedConstellationIAU
+        ))
+        addAimedStarMarker(jd: jd, loc: loc)
 
         if let iss = app.iss.altAz(at: app.clock.now(), latitude: loc.latitude, longitudeEast: loc.longitude), iss.alt > 0 {
             skyRoot.addChildNode(SkySphereBuilder.markerNode(named: "iss", altAz: iss, color: .cyan, size: 0.12))
@@ -256,7 +267,9 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             overlayConstellations = app.catalog.allConstellations()
         }
         addConstellationNameLabels(jd: jd, loc: loc, bounds: bounds)
+        addAimOverlay(jd: jd, loc: loc, bounds: bounds)
         for star in labelStars.prefix(40) {
+            if case .star(let hr) = app.aimedSky, star.hr == hr { continue }
             let h = HorizontalConvert.altAz(equatorialJ2000: star.equatorial, jd: jd, latitude: loc.latitude, longitudeEast: loc.longitude)
             // Polaris stays labeled even when it sits near the horizon.
             guard h.alt > (star.isPolaris ? -0.6 : 8) else { continue }
@@ -292,6 +305,9 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
                 longitudeEast: loc.longitude
             )
             guard h.alt >= 12 else { continue }
+            if case .constellation(let iau) = app?.aimedSky, iau.caseInsensitiveCompare(con.iau) == .orderedSame {
+                continue
+            }
             let d = HorizontalConvert.sceneDirection(altAz: h) * SkySphereBuilder.radius
             let projected = sceneView.projectPoint(SCNVector3(d.x, d.y, d.z))
             let px = CGFloat(projected.x)
@@ -323,6 +339,112 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
         }
     }
 
+    private func addAimedStarMarker(jd: Double, loc: ObserverLocation) {
+        guard let app, let target = app.aimedTarget() else { return }
+        let h = HorizontalConvert.altAz(
+            equatorialJ2000: target.equatorial,
+            jd: jd,
+            latitude: loc.latitude,
+            longitudeEast: loc.longitude
+        )
+        guard h.alt > -0.6 else { return }
+        let size: CGFloat = {
+            if case .star = app.aimedSky { return 0.16 }
+            return 0.11
+        }()
+        skyRoot.addChildNode(SkySphereBuilder.markerNode(
+            named: "aim-target",
+            altAz: h,
+            color: SkySphereBuilder.aimHighlight,
+            size: size
+        ))
+    }
+
+    private func addAimOverlay(jd: Double, loc: ObserverLocation, bounds: CGRect) {
+        guard let app, let target = app.aimedTarget() else { return }
+        let gold = SkySphereBuilder.aimHighlight
+        let h = HorizontalConvert.altAz(
+            equatorialJ2000: target.equatorial,
+            jd: jd,
+            latitude: loc.latitude,
+            longitudeEast: loc.longitude
+        )
+        let d = HorizontalConvert.sceneDirection(altAz: h) * SkySphereBuilder.radius
+        let projected = sceneView.projectPoint(SCNVector3(d.x, d.y, d.z))
+        let px = CGFloat(projected.x)
+        let py = CGFloat(projected.y)
+        let pz = CGFloat(projected.z)
+        let pad: CGFloat = 28
+        let onScreen = pz >= 0 && pz <= 1
+            && px >= pad && px <= bounds.width - pad
+            && py >= pad + 36 && py <= bounds.height - pad
+        if onScreen {
+            let ring = UIView(frame: CGRect(x: px - 20, y: py - 20, width: 40, height: 40))
+            ring.layer.cornerRadius = 20
+            ring.layer.borderWidth = 2
+            ring.layer.borderColor = gold.cgColor
+            ring.backgroundColor = .clear
+            overlayHost.addSubview(ring)
+            let dot = UIView(frame: CGRect(x: px - 3, y: py - 3, width: 6, height: 6))
+            dot.layer.cornerRadius = 3
+            dot.backgroundColor = gold
+            overlayHost.addSubview(dot)
+            let lab = UILabel()
+            lab.text = target.name
+            lab.textColor = gold
+            lab.font = .systemFont(ofSize: 13, weight: .bold)
+            lab.textAlignment = .center
+            lab.layer.shadowColor = UIColor.black.cgColor
+            lab.layer.shadowRadius = 3
+            lab.layer.shadowOpacity = 1
+            lab.sizeToFit()
+            var f = lab.frame
+            f.size.width += 12
+            f.origin = CGPoint(x: px - f.width / 2, y: py + 22)
+            lab.frame = f
+            overlayHost.addSubview(lab)
+            return
+        }
+        var dx = px - bounds.midX
+        var dy = py - bounds.midY
+        if pz < 0 || pz > 1 {
+            dx = -dx
+            dy = -dy
+        }
+        let (edge, angle) = edgeChevron(dx: dx, dy: dy, in: bounds)
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = gold
+        chevron.contentMode = .scaleAspectFit
+        chevron.frame = CGRect(x: edge.x - 14, y: edge.y - 14, width: 28, height: 28)
+        chevron.transform = CGAffineTransform(rotationAngle: angle)
+        chevron.layer.shadowColor = UIColor.black.cgColor
+        chevron.layer.shadowRadius = 3
+        chevron.layer.shadowOpacity = 1
+        overlayHost.addSubview(chevron)
+    }
+
+    private func edgeChevron(dx: CGFloat, dy: CGFloat, in bounds: CGRect) -> (CGPoint, CGFloat) {
+        let inset = bounds.insetBy(dx: 32, dy: 110)
+        let origin = CGPoint(x: inset.midX, y: inset.midY)
+        var vx = dx
+        var vy = dy
+        let len = hypot(vx, vy)
+        if len < 1e-4 {
+            vx = 0
+            vy = -1
+        } else {
+            vx /= len
+            vy /= len
+        }
+        var t = CGFloat.greatestFiniteMagnitude
+        if vx > 1e-6 { t = min(t, (inset.maxX - origin.x) / vx) }
+        if vx < -1e-6 { t = min(t, (inset.minX - origin.x) / vx) }
+        if vy > 1e-6 { t = min(t, (inset.maxY - origin.y) / vy) }
+        if vy < -1e-6 { t = min(t, (inset.minY - origin.y) / vy) }
+        if !t.isFinite { t = 0 }
+        return (CGPoint(x: origin.x + vx * t, y: origin.y + vy * t), atan2(vy, vx))
+    }
+
     @objc private func handleTap(_ gr: UITapGestureRecognizer) {
         if pausedForStill {
             pausedForStill = false
@@ -335,6 +457,8 @@ final class SkyARViewController: UIViewController, ARSCNViewDelegate, UIGestureR
             tap: pt, in: sceneView, targets: tapTargets
         ) {
             app.showStar(star)
+        } else {
+            app.clearSkyAim()
         }
     }
 }

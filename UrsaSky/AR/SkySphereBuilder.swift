@@ -8,6 +8,7 @@ enum SkySphereBuilder {
     /// reads as ~2.5–3× that width from the camera at the origin.
     static let constellationLineRadius: CGFloat = 0.022
     static let constellationGlowRadius: CGFloat = 0.048
+    static let aimHighlight = UIColor(red: 1.0, green: 0.76, blue: 0.22, alpha: 1)
 
     static func starNode(stars: [Star], magLimit: Double, jd: Double, latitude: Double, longitude: Double) -> (SCNNode, [Int], [SIMD3<Double>]) {
         let visible = stars.filter { $0.mag <= magLimit }
@@ -67,11 +68,23 @@ enum SkySphereBuilder {
         return (node, hrIndex, directions)
     }
 
-    static func lineNode(lines: [ConstellationLine], starsByHR: [Int: Star], jd: Double, latitude: Double, longitude: Double) -> SCNNode {
+    static func lineNode(
+        lines: [ConstellationLine],
+        starsByHR: [Int: Star],
+        jd: Double,
+        latitude: Double,
+        longitude: Double,
+        highlightIAU: String? = nil
+    ) -> SCNNode {
         let node = SCNNode()
         node.name = "lines"
-        let stroke = lineMaterial(color: UIColor(white: 0.78, alpha: 0.82), emission: 0.28)
-        let glow = lineMaterial(color: UIColor(white: 0.85, alpha: 0.22), emission: 0.12)
+        let stroke = lineMaterial(color: UIColor(white: 0.78, alpha: 0.82), emission: UIColor(white: 0.28, alpha: 1))
+        let glow = lineMaterial(color: UIColor(white: 0.85, alpha: 0.22), emission: UIColor(white: 0.12, alpha: 1))
+        let dimStroke = lineMaterial(color: UIColor(white: 0.48, alpha: 0.38), emission: UIColor(white: 0.08, alpha: 1))
+        let dimGlow = lineMaterial(color: UIColor(white: 0.52, alpha: 0.10), emission: UIColor(white: 0.04, alpha: 1))
+        let hiStroke = lineMaterial(color: aimHighlight, emission: aimHighlight)
+        let hiGlow = lineMaterial(color: aimHighlight.withAlphaComponent(0.38), emission: aimHighlight.withAlphaComponent(0.45))
+        let dimming = highlightIAU != nil
         for line in lines {
             guard let a = starsByHR[line.starA], let b = starsByHR[line.starB] else { continue }
             let ha = HorizontalConvert.altAz(equatorialJ2000: a.equatorial, jd: jd, latitude: latitude, longitudeEast: longitude, applyNutation: true, applyRefraction: false)
@@ -82,20 +95,25 @@ enum SkySphereBuilder {
             let db = HorizontalConvert.sceneDirection(altAz: hb) * radius
             let from = SCNVector3(da.x, da.y, da.z)
             let to = SCNVector3(db.x, db.y, db.z)
-            if let core = cylinderSegment(from: from, to: to, radius: constellationLineRadius, material: stroke) {
+            let highlighted = highlightIAU.map { $0.caseInsensitiveCompare(line.iau) == .orderedSame } ?? false
+            let coreMat = highlighted ? hiStroke : (dimming ? dimStroke : stroke)
+            let glowMat = highlighted ? hiGlow : (dimming ? dimGlow : glow)
+            let coreR = highlighted ? constellationLineRadius * 1.4 : constellationLineRadius
+            let glowR = highlighted ? constellationGlowRadius * 1.45 : constellationGlowRadius
+            if let core = cylinderSegment(from: from, to: to, radius: coreR, material: coreMat) {
                 node.addChildNode(core)
             }
-            if let halo = cylinderSegment(from: from, to: to, radius: constellationGlowRadius, material: glow) {
+            if let halo = cylinderSegment(from: from, to: to, radius: glowR, material: glowMat) {
                 node.addChildNode(halo)
             }
         }
         return node
     }
 
-    private static func lineMaterial(color: UIColor, emission: CGFloat) -> SCNMaterial {
+    private static func lineMaterial(color: UIColor, emission: UIColor) -> SCNMaterial {
         let mat = SCNMaterial()
         mat.diffuse.contents = color
-        mat.emission.contents = UIColor(white: emission, alpha: 1)
+        mat.emission.contents = emission
         mat.lightingModel = .constant
         mat.writesToDepthBuffer = false
         mat.isDoubleSided = true

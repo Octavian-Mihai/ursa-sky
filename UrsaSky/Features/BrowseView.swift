@@ -134,15 +134,26 @@ struct BrowseView: View {
 
     private var constellationList: some View {
         List(filteredConstellations) { c in
-            Button {
-                app.showConstellation(c)
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(c.name).foregroundStyle(app.theme.primaryText)
-                    Text(guideLine(c.equatorial))
-                        .font(.caption)
-                        .foregroundStyle(app.theme.secondaryText)
+            HStack {
+                Button {
+                    app.showConstellation(c)
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(c.name).foregroundStyle(app.theme.primaryText)
+                        Text(guideLine(c.equatorial))
+                            .font(.caption)
+                            .foregroundStyle(app.theme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(.plain)
+                Button {
+                    app.showOnSky(constellation: c)
+                } label: {
+                    Image(systemName: "sparkles")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Show on Sky")
             }
         }
         .scrollContentBackground(.hidden)
@@ -150,17 +161,27 @@ struct BrowseView: View {
 
     private var starList: some View {
         List(filteredStars) { s in
-            Button { app.showStar(s) } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(s.displayName).foregroundStyle(app.theme.primaryText)
-                        Text(guideLine(s.equatorial))
-                            .font(.caption)
-                            .foregroundStyle(app.theme.secondaryText)
+            HStack {
+                Button { app.showStar(s) } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(s.displayName).foregroundStyle(app.theme.primaryText)
+                            Text(guideLine(s.equatorial))
+                                .font(.caption)
+                                .foregroundStyle(app.theme.secondaryText)
+                        }
+                        Spacer()
+                        Text(String(format: "%.2f", s.mag)).foregroundStyle(app.theme.secondaryText)
                     }
-                    Spacer()
-                    Text(String(format: "%.2f", s.mag)).foregroundStyle(app.theme.secondaryText)
                 }
+                .buttonStyle(.plain)
+                Button {
+                    app.showOnSky(star: s)
+                } label: {
+                    Image(systemName: "sparkles")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Show on Sky")
             }
         }
         .scrollContentBackground(.hidden)
@@ -194,7 +215,7 @@ struct BrowseView: View {
 
     private var filteredConstellations: [Constellation] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return app.catalog.allConstellations().filter { c in
+        let filtered = app.catalog.allConstellations().filter { c in
             if !q.isEmpty {
                 let hit = c.name.lowercased().contains(q) || c.iau.lowercased().contains(q)
                 if !hit { return false }
@@ -209,11 +230,12 @@ struct BrowseView: View {
                 return season == conFilter.rawValue.lowercased() || season == "year-round"
             }
         }
+        return rankedByVisibility(filtered, equatorial: { $0.equatorial }, name: { $0.name })
     }
 
     private var filteredStars: [Star] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return app.catalog.stars(brighterThan: brightness.rawValue).filter { s in
+        let filtered = app.catalog.stars(brighterThan: brightness.rawValue).filter { s in
             if !q.isEmpty {
                 let nameHit = s.commonName?.lowercased().contains(q) == true
                     || s.displayName.lowercased().contains(q)
@@ -226,12 +248,13 @@ struct BrowseView: View {
             }
             return true
         }
+        return rankedByVisibility(filtered, equatorial: { $0.equatorial }, name: { $0.displayName })
     }
 
     private var filteredMeteors: [MeteorShower] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let now = app.clock.now()
-        return app.meteors.sortedForCalendar(around: now).filter { s in
+        let filtered = app.meteors.sortedForCalendar(around: now).filter { s in
             if !q.isEmpty, !s.name.lowercased().contains(q) { return false }
             switch meteorFilter {
             case .all: return true
@@ -239,6 +262,24 @@ struct BrowseView: View {
             case .upcoming: return s.isUpcoming(on: now)
             }
         }
+        if meteorFilter == .active {
+            return rankedByVisibility(filtered, equatorial: { $0.equatorial }, name: { $0.name })
+        }
+        return filtered
+    }
+
+    private func rankedByVisibility<T>(
+        _ items: [T],
+        equatorial: (T) -> Equatorial,
+        name: (T) -> String
+    ) -> [T] {
+        SkyGuide.sortedByVisibility(
+            items,
+            equatorial: equatorial,
+            name: name,
+            jd: app.clock.julianDay(),
+            location: app.location.current
+        )
     }
 
     private var needsLocationHint: Bool {

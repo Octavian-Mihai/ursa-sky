@@ -8,6 +8,12 @@ enum AppTab: Hashable {
     case settings
 }
 
+/// Target the Sky tab should highlight after “Show on Sky”.
+enum SkyAim: Equatable {
+    case star(hr: Int)
+    case constellation(iau: String)
+}
+
 @MainActor
 final class AppState: ObservableObject {
     let catalog = CatalogStore.shared
@@ -24,6 +30,7 @@ final class AppState: ObservableObject {
     @Published var onboardingComplete: Bool
     @Published var selectedStar: Star?
     @Published var selectedConstellation: Constellation?
+    @Published var aimedSky: SkyAim?
     @Published var selectedTab: AppTab = .sky
     @Published var sceneActive = true
     @Published var iss: ISSPredictor
@@ -51,8 +58,54 @@ final class AppState: ObservableObject {
     }
 
     func showOnSky() {
+        if let star = selectedStar {
+            showOnSky(star: star)
+        } else if let constellation = selectedConstellation {
+            showOnSky(constellation: constellation)
+        } else {
+            selectedTab = .sky
+        }
+    }
+
+    func showOnSky(star: Star) {
+        aimedSky = .star(hr: star.hr)
         dismissInfo()
         selectedTab = .sky
+    }
+
+    func showOnSky(constellation: Constellation) {
+        aimedSky = .constellation(iau: constellation.iau)
+        dismissInfo()
+        selectedTab = .sky
+    }
+
+    func clearSkyAim() {
+        aimedSky = nil
+    }
+
+    /// Stick-figure IAU to paint in the highlight color (the aimed constellation, or the star’s home).
+    var aimedConstellationIAU: String? {
+        switch aimedSky {
+        case .constellation(let iau):
+            return iau
+        case .star(let hr):
+            return catalog.star(hr: hr)?.iau
+        case nil:
+            return nil
+        }
+    }
+
+    func aimedTarget() -> (name: String, equatorial: Equatorial)? {
+        switch aimedSky {
+        case .star(let hr):
+            guard let star = catalog.star(hr: hr) else { return nil }
+            return (star.displayName, star.equatorial)
+        case .constellation(let iau):
+            guard let constellation = catalog.constellation(iau: iau) else { return nil }
+            return (constellation.name, constellation.equatorial)
+        case nil:
+            return nil
+        }
     }
 
     var theme: NightPalette { nightVision ? NightMode.night : NightMode.dark }
