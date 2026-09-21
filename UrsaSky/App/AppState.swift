@@ -2,10 +2,10 @@ import Foundation
 import Combine
 import SwiftUI
 
-enum AppTab: Hashable {
-    case sky
-    case browse
-    case settings
+enum AppTab: Int, Hashable {
+    case sky = 0
+    case browse = 1
+    case settings = 2
 }
 
 /// Target the Sky tab should highlight after “Show on Sky”.
@@ -38,7 +38,7 @@ final class AppState: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    var arPaused: Bool { !sceneActive || infoSheetOpen }
+    var arPaused: Bool { !sceneActive || infoSheetOpen || selectedTab != .sky }
 
     var infoSheetOpen: Bool { selectedStar != nil || selectedConstellation != nil }
 

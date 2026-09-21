@@ -131,7 +131,7 @@ struct SGP4 {
         let t4 = t2 * t2
         var tempa = 1 - c1 * t - d2 * t2 - d3 * t3 - d4 * t4
         var tempe = bstar * c4 * t
-        var templ = t2cof * t2 + t3cof * t3 + t4cof * t4 + t5cof * t4 * t
+        let templ = t2cof * t2 + t3cof * t3 + t4cof * t4 + t5cof * t4 * t
         tempa = max(tempa, 0.7)
         tempe += bstar * c5 * (sin(xmdf) - sinmo)
         // `templ` is the drag secular term in mean longitude (Vallado SGP4).

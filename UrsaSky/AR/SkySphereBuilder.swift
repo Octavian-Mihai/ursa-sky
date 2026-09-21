@@ -52,7 +52,7 @@ enum SkySphereBuilder {
             dataOffset: 0,
             dataStride: MemoryLayout<SCNVector3>.size
         )
-        var indices = (0..<positions.count).map { UInt32($0) }
+        let indices = (0..<positions.count).map { UInt32($0) }
         let idxData = indices.withUnsafeBufferPointer { Data(buffer: $0) }
         let element = SCNGeometryElement(data: idxData, primitiveType: .point, primitiveCount: positions.count, bytesPerIndex: 4)
         element.pointSize = 6

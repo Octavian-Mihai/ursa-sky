@@ -57,8 +57,12 @@ struct SkyTab: View {
     var body: some View {
         ZStack(alignment: .top) {
             if app.hasLocation {
-                SkyARRepresentable(app: app)
-                    .ignoresSafeArea()
+                if app.selectedTab == .sky {
+                    SkyARRepresentable(app: app)
+                        .ignoresSafeArea()
+                } else {
+                    app.theme.background.ignoresSafeArea()
+                }
                 // Filter the sky only so tab bar / settings stay readable and tappable.
                 RedFilterOverlay(intensity: app.redIntensity, enabled: app.redFilter)
             } else {

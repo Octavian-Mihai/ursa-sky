@@ -36,7 +36,7 @@ enum JulianDate {
     static func date(fromJulianDay jd: Double) -> Date {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(secondsFromGMT: 0)!
-        var z = Int(floor(jd + 0.5))
+        let z = Int(floor(jd + 0.5))
         let f = jd + 0.5 - Double(z)
         var a = z
         if z >= 2299161 {

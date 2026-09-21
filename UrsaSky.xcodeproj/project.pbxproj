@@ -29,8 +29,6 @@
 		00SKY000000000000000064 /* ConstellationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000063 /* ConstellationDetailView.swift */; };
 		00SKY000000000000000066 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000065 /* SettingsView.swift */; };
 		00SKY000000000000000068 /* StarDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000067 /* StarDetailView.swift */; };
-		00SKY000000000000000125 /* SkyGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000124 /* SkyGuide.swift */; };
-		00SKY000000000000000127 /* ExplainedRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000126 /* ExplainedRow.swift */; };
 		00SKY000000000000000070 /* ISSPredictor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000069 /* ISSPredictor.swift */; };
 		00SKY000000000000000072 /* OnlineTLEClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000071 /* OnlineTLEClient.swift */; };
 		00SKY000000000000000074 /* SGP4.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000073 /* SGP4.swift */; };
@@ -47,7 +45,6 @@
 		00SKY000000000000000096 /* SkyClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000095 /* SkyClock.swift */; };
 		00SKY000000000000000098 /* TimeTravelScrubber.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000097 /* TimeTravelScrubber.swift */; };
 		00SKY000000000000000100 /* AstronomyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000099 /* AstronomyTests.swift */; };
-		00SKY000000000000000123 /* CatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000122 /* CatalogTests.swift */; };
 		00SKY000000000000000102 /* catalog.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000101 /* catalog.sqlite */; };
 		00SKY000000000000000104 /* cities.json in Resources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000103 /* cities.json */; };
 		00SKY000000000000000106 /* meteors.json in Resources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000105 /* meteors.json */; };
@@ -58,6 +55,9 @@
 		00SKY000000000000000117 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000116 /* CoreMotion.framework */; };
 		00SKY000000000000000119 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000118 /* CoreLocation.framework */; };
 		00SKY000000000000000121 /* SQLite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000120 /* SQLite3.tbd */; };
+		00SKY000000000000000123 /* CatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000122 /* CatalogTests.swift */; };
+		00SKY000000000000000125 /* SkyGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000124 /* SkyGuide.swift */; };
+		00SKY000000000000000127 /* ExplainedRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00SKY000000000000000126 /* ExplainedRow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,8 +95,6 @@
 		00SKY000000000000000063 /* ConstellationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstellationDetailView.swift; sourceTree = "<group>"; };
 		00SKY000000000000000065 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		00SKY000000000000000067 /* StarDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarDetailView.swift; sourceTree = "<group>"; };
-		00SKY000000000000000124 /* SkyGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyGuide.swift; sourceTree = "<group>"; };
-		00SKY000000000000000126 /* ExplainedRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplainedRow.swift; sourceTree = "<group>"; };
 		00SKY000000000000000069 /* ISSPredictor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISSPredictor.swift; sourceTree = "<group>"; };
 		00SKY000000000000000071 /* OnlineTLEClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineTLEClient.swift; sourceTree = "<group>"; };
 		00SKY000000000000000073 /* SGP4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SGP4.swift; sourceTree = "<group>"; };
@@ -113,7 +111,6 @@
 		00SKY000000000000000095 /* SkyClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyClock.swift; sourceTree = "<group>"; };
 		00SKY000000000000000097 /* TimeTravelScrubber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTravelScrubber.swift; sourceTree = "<group>"; };
 		00SKY000000000000000099 /* AstronomyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AstronomyTests.swift; sourceTree = "<group>"; };
-		00SKY000000000000000122 /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
 		00SKY000000000000000101 /* catalog.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = catalog.sqlite; sourceTree = "<group>"; };
 		00SKY000000000000000103 /* cities.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = cities.json; sourceTree = "<group>"; };
 		00SKY000000000000000105 /* meteors.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = meteors.json; sourceTree = "<group>"; };
@@ -125,6 +122,9 @@
 		00SKY000000000000000116 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		00SKY000000000000000118 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		00SKY000000000000000120 /* SQLite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = SQLite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		00SKY000000000000000122 /* CatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTests.swift; sourceTree = "<group>"; };
+		00SKY000000000000000124 /* SkyGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyGuide.swift; sourceTree = "<group>"; };
+		00SKY000000000000000126 /* ExplainedRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplainedRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -391,7 +391,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					00SKY000000000000000002 = {
 						CreatedOnToolsVersion = 15.0;
@@ -509,15 +509,43 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
@@ -530,10 +558,38 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
