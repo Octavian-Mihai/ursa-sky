@@ -4,13 +4,9 @@ Offline AR planetarium for iPhone (iOS 17, Swift 5.9). SceneKit + ARKit overlay 
 
 ## Screenshots
 
-| Sky View | Browse |
-|:---:|:---:|
-| ![Sky view with Polaris highlighted](docs/screenshots/sky-view.webp) | ![Browse constellations](docs/screenshots/browse.webp) |
-
-| Star Details |
-|:---:|
-| ![Star details showing Polaris](docs/screenshots/star-details.webp) |
+| Sky View | Browse | Star Details |
+|:---:|:---:|:---:|
+| ![Sky view with Polaris highlighted](docs/screenshots/sky-view.webp) | ![Browse constellations](docs/screenshots/browse.webp) | ![Star details showing Polaris](docs/screenshots/star-details.webp) |
 
 ---
 
