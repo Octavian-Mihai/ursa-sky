@@ -1,6 +1,20 @@
 # Ursa Sky
 
-Offline AR planetarium for iPhone (iOS 17, Swift 5.9). SceneKit + ARKit overlay a bundled star catalog on the live camera. **Core sky pointing, search, and details work with zero network.** ISS TLE refresh is the only optional online step.
+Offline AR planetarium for iPhone (iOS 17, Swift 5.9). Point your phone at the night sky and see constellations, stars, and their names overlaid on live camera — **all without needing the internet.** SceneKit + ARKit overlay a bundled star catalog with real-time altitude/azimuth pointing.
+
+<img src="docs/screenshots/sky-view.webp" width="280" alt="Sky view with Polaris highlighted" align="right" style="margin: 0 0 20px 20px" />
+
+**Core features work completely offline:** tap to identify any visible star and see its catalog details—magnitude, spectral type, distance, constellation. Browse the full catalog by constellation or search by name. ISS pass predictions and online enhancements are the only optional network features.
+
+<img src="docs/screenshots/browse.webp" width="280" alt="Browse constellations" align="left" style="margin: 0 20px 20px 0" />
+
+The app bundles 9,096 stars from the Yale Bright Star Catalogue, 88 IAU constellations with traditional stick-figure outlines, 333 named stars, and support for 146 cities to set your observing location. A night-mode red filter preserves dark adaptation.
+
+<img src="docs/screenshots/star-details.webp" width="280" alt="Star details showing Polaris" align="right" style="margin: 0 0 20px 20px" />
+
+Tap any star to see its full record: IAU name, HR/HIP catalog numbers, spectrum, distance in light-years, altitude/azimuth for tonight, and which constellation it belongs to. The catalog is compiled and committed so **a fresh install needs no download.**
+
+## Getting Started
 
 Open `UrsaSky.xcodeproj` in Xcode, choose an iPhone simulator or device, and run the **Ursa Sky** scheme.
 
